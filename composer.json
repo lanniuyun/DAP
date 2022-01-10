@@ -1,0 +1,19 @@
+{
+    "name": "lanniuyun/device-aggregation-platform",
+    "description": "设备聚合平台",
+    "type": "library",
+    "authors": [
+        {
+            "name": "On3",
+            "email": "452327292@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "On3\\DAP\\": "src/"
+        }
+    }
+}
