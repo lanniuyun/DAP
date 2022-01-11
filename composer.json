@@ -1,6 +1,6 @@
 {
-    "name": "lanniuyun/device-aggregation-platform",
-    "description": "设备聚合平台",
+    "name": "on3/DAP",
+    "description": "device-aggregation-platform",
     "type": "library",
     "license": "MIT",
     "authors": [
