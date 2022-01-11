@@ -16,6 +16,6 @@
             "On3\\DAP\\": "src/"
         }
     },
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "prefer-stable": false
 }
