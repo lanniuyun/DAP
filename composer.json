@@ -2,6 +2,7 @@
     "name": "lanniuyun/device-aggregation-platform",
     "description": "设备聚合平台",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "On3",
