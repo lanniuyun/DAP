@@ -10,13 +10,10 @@
         }
     ],
     "require": {
-        "php": ">=7.0"
     },
     "autoload": {
         "psr-4": {
             "On3\\DAP\\": "src/"
         }
-    },
-    "minimum-stability": "dev",
-    "prefer-stable": true
+    }
 }
