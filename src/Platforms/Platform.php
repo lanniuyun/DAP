@@ -2,6 +2,7 @@
 
 namespace On3\DAP\Platforms;
 
+use Illuminate\Support\Facades\Log;
 use On3\DAP\Contracts\PlatformInterface;
 
 abstract class Platform implements PlatformInterface
@@ -13,6 +14,8 @@ abstract class Platform implements PlatformInterface
     protected $httpMethod = self::METHOD_POST;
     protected $timeout = 5;
     protected $responseFormat = 'json';
+
+    protected $logging;
 
     const RESP_FMT_JSON = 'json';
     const RESP_FMT_BODY = 'body';
@@ -40,4 +43,16 @@ abstract class Platform implements PlatformInterface
     abstract protected function generateSignature();
 
     abstract protected function formatResp(&$response);
+
+    protected function injectLogObj(){
+        $calledClass = get_called_class();
+        $calledClassArr = explode('\\',$calledClass);
+        $className = lcfirst(end($calledClassArr));
+        $this->logging = Log::build([
+            'driver' => 'daily',
+            'path' => storage_path("logs/dap/{$className}.log"),
+            'level' => 'debug',
+            'days' => 14
+        ]);
+    }
 }

@@ -112,6 +112,7 @@ class JieShun extends Platform
         $this->gateway = $dev ? Gateways::JIE_SHUN_DEV : Gateways::JIE_SHUN;
         $this->configValidator();
         $this->injectToken();
+        $this->injectLogObj();
     }
 
     //临停缴费
@@ -1429,14 +1430,13 @@ class JieShun extends Platform
             throw new InvalidArgumentException($errMsg);
         } else {
             $rawResponse = $httpClient->$httpMethod($this->uri, $this->queryBody);
+            $contentStr = $rawResponse->getBody()->getContents();
+            $contentArr = @json_decode($contentStr, true);
+            $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
             $this->cleanup();
+
             if ($rawResponse->getStatusCode() === 200) {
-
-                $contentStr = $rawResponse->getBody()->getContents();
-                $contentArr = @json_decode($contentStr, true);
-
                 $this->refreshToken($contentArr);
-
                 switch ($this->responseFormat) {
                     case self::RESP_FMT_JSON:
                         $responsePacket = $contentArr;
@@ -1475,7 +1475,7 @@ class JieShun extends Platform
             $this->token = $token;
         } else {
             $response = $this->login()->fire();
-            if ($this->token = Arr::get($response, 'token')?: Arr::get($response, 'raw_resp.token')) {
+            if ($this->token = Arr::get($response, 'token') ?: Arr::get($response, 'raw_resp.token')) {
                 cache([$cacheKey => $this->token], now()->addHour());
             }
         }
