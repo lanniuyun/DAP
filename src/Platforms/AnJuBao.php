@@ -48,7 +48,7 @@ class AnJuBao extends Platform
 
     public function login()
     {
-        $this->uri = '/SQ-User/Login';
+        $this->uri = 'SQ-User/Login';
         $this->name = '账号登录';
         $queryDat = ['userName' => $this->userName, 'passWord' => $this->passWord];
         $this->injectData($queryDat);
@@ -98,6 +98,21 @@ class AnJuBao extends Platform
         $httpMethod = $this->httpMethod;
         $uri = urldecode($this->uri . '?' . http_build_query($this->queryBody));
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+        if ($this->cancel) {
+            $errBox = $this->errBox;
+            if (is_array($errBox)) {
+                $errMsg = implode(',', $errBox);
+            } else {
+                $errMsg = '未知错误';
+            }
+            $this->cleanup();
+            throw new InvalidArgumentException($errMsg);
+        } else {
+            $rawResponse = $httpClient->$httpMethod($this->uri, $this->queryBody);
+            $contentStr = $rawResponse->getBody()->getContents();
+            $contentArr = @json_decode($contentStr, true);
+            dd($contentStr,$contentArr);
+        }
     }
 
     protected function formatResp(&$response)

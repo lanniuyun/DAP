@@ -110,9 +110,9 @@ class JieShun extends Platform
         $this->signKey = Arr::get($config, 'signKey');
         $this->businesserCode = Arr::get($config, 'businesserCode');
         $this->gateway = $dev ? Gateways::JIE_SHUN_DEV : Gateways::JIE_SHUN;
+        $this->injectLogObj();
         $this->configValidator();
         $this->injectToken();
-        $this->injectLogObj();
     }
 
     //临停缴费
