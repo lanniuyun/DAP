@@ -44,15 +44,20 @@ abstract class Platform implements PlatformInterface
 
     abstract protected function formatResp(&$response);
 
-    protected function injectLogObj(){
+    protected function injectLogObj()
+    {
         $calledClass = get_called_class();
-        $calledClassArr = explode('\\',$calledClass);
+        $calledClassArr = explode('\\', $calledClass);
         $className = lcfirst(end($calledClassArr));
-        $this->logging = Log::build([
+
+        $channels = config('logging.channels');
+        $dapChannelName = 'dap_' . $className;
+        $channels[$dapChannelName] = [
             'driver' => 'daily',
             'path' => storage_path("logs/dap/{$className}.log"),
             'level' => 'debug',
-            'days' => 14
-        ]);
+            'days' => 14];
+        config(['logging.channels' => $channels]);
+        $this->logging = Log::channel($dapChannelName);
     }
 }
