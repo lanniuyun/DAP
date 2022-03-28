@@ -60,4 +60,15 @@ abstract class Platform implements PlatformInterface
         config(['logging.channels' => $channels]);
         $this->logging = Log::channel($dapChannelName);
     }
+
+    public function setGateway(string $gateway)
+    {
+        $this->gateway = $gateway;
+        return $this;
+    }
+
+    public function getGateway()
+    {
+        return $this->gateway;
+    }
 }
