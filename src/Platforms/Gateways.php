@@ -10,6 +10,6 @@ class Gateways
     const KEY_TOP_DEV = 'https://tsktapps.keytop.cn/unite-api/api/';
     const KEY_TOP = 'http://kp-open.keytop.cn/unite-api/api/';
 
-    const JIE_SHUN_DEV = 'http://admin.njlanniu.cn/jsaims/';
-    const JIE_SHUN = 'http://syx.jslife.com.cn/jsaims/';
+    const JIE_SHUN_DEV = 'http://syx.jslife.com.cn/jsaims/';
+    const JIE_SHUN = 'http://www.jslife.com.cn/jsaims/';
 }
