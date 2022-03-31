@@ -12,4 +12,6 @@ class Gateways
 
     const JIE_SHUN_DEV = 'http://syx.jslife.com.cn/jsaims/';
     const JIE_SHUN = 'http://www.jslife.com.cn/jsaims/';
+    const JIE_SHUN_JHTDC_DEV = 'http://jhtdc.jslife.com.cn/api/';
+    const JIE_SHUN_JHTDC = 'http://jhtdc.jslife.com.cn/api/';
 }

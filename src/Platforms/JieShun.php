@@ -25,6 +25,7 @@ class JieShun extends Platform
     protected $sn;
     protected $signKey;
     protected $httpMethod = self::METHOD_GET;
+    protected $jhtdc;
 
     const ORDER_TYPE_VNP = 'VNP';
     const ORDER_TYPE_SP = 'SP';
@@ -109,7 +110,12 @@ class JieShun extends Platform
         $this->psw = Arr::get($config, 'psw');
         $this->signKey = Arr::get($config, 'signKey');
         $this->businesserCode = Arr::get($config, 'businesserCode');
-        $this->gateway = $dev ? Gateways::JIE_SHUN_DEV : Gateways::JIE_SHUN;
+        if ($gateway = Arr::get($config, 'gateway')) {
+            $this->gateway = $gateway;
+        } else {
+            $this->gateway = $dev ? Gateways::JIE_SHUN_DEV : Gateways::JIE_SHUN;
+        }
+        $this->jhtdc = new JIeShunJHTDC(Arr::only($config, ['pno', 'secret']), $dev);
         $this->injectLogObj();
         $this->configValidator();
         $this->injectToken();
@@ -1518,5 +1524,21 @@ class JieShun extends Platform
             $resPacket = ['code' => 500, 'msg' => Arr::get($response, 'message'), 'data' => [], 'raw_resp' => $response];
         }
         $response = $resPacket;
+    }
+
+    public function getJhtdc()
+    {
+        return $this->jhtdc;
+    }
+
+    /**
+     * @param $filePatches
+     * @return mixed
+     * @throws InvalidArgumentException
+     * @throws RequestFailedException
+     */
+    public function fetchFileUrl($filePatches)
+    {
+        return $this->jhtdc->fetchFileUrl($filePatches);
     }
 }

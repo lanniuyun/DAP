@@ -10,10 +10,9 @@ abstract class Platform implements PlatformInterface
     const METHOD_GET = 'get';
     const METHOD_POST = 'post';
 
-    protected $format = 'json';
     protected $httpMethod = self::METHOD_POST;
-    protected $timeout = 5;
-    protected $responseFormat = 'json';
+    protected $timeout = 3;
+    protected $responseFormat = self::RESP_FMT_JSON;
 
     protected $logging;
 
@@ -59,16 +58,5 @@ abstract class Platform implements PlatformInterface
             'days' => 14];
         config(['logging.channels' => $channels]);
         $this->logging = Log::channel($dapChannelName);
-    }
-
-    public function setGateway(string $gateway)
-    {
-        $this->gateway = $gateway;
-        return $this;
-    }
-
-    public function getGateway()
-    {
-        return $this->gateway;
     }
 }
