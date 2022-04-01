@@ -1557,9 +1557,11 @@ class JieShun extends Platform
             $dataItems = \Arr::get($rawMsgArr, 'dataItems');
             $fmtMsg = json_decode($dataItems, true);
             $fmtMsg = array_map(function ($value) {
-                $value['vehicleInfo'] = json_decode($value['vehicleInfo'], true);
+                if ($vehicleInfo = \Arr::get($value, 'vehicleInfo')) {
+                    $value['vehicleInfo'] = json_decode($vehicleInfo, true);
+                }
                 return $value;
-            }, $fmtMsg);
+            }, $fmtMsg ?: []);
         } catch (\Throwable $exception) {
             $failed = $exception->getMessage();
         }
