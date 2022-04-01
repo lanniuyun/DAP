@@ -53,4 +53,9 @@ class DAP
         }
         throw new \Exception('试图访问未定义的函数[' . $name . ']');
     }
+
+    static public function jieShunInputsAdapter(\Closure $closure)
+    {
+        return JieShun::inputsAdapter($closure);
+    }
 }

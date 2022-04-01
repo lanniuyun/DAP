@@ -1541,4 +1541,28 @@ class JieShun extends Platform
     {
         return $this->jhtdc->fetchFileUrl($filePatches);
     }
+
+    static public function inputsAdapter(\Closure $closure)
+    {
+        return self::inputsAdapterCore($closure);
+    }
+
+    static protected function inputsAdapterCore(\Closure $closure)
+    {
+        $failed = null;
+        $fmtMsg = $rawMsg = null;
+        try {
+            $rawMsg = file_get_contents('php://input');
+            $rawMsgArr = json_decode($rawMsg, true);
+            $dataItems = \Arr::get($rawMsgArr, 'dataItems');
+            $fmtMsg = json_decode($dataItems, true);
+            $fmtMsg = array_map(function ($value) {
+                $value['vehicleInfo'] = json_decode($value['vehicleInfo'], true);
+                return $value;
+            }, $fmtMsg);
+        } catch (\Throwable $exception) {
+            $failed = $exception->getMessage();
+        }
+        return call_user_func_array($closure, [$fmtMsg, $rawMsg, $failed]);
+    }
 }
