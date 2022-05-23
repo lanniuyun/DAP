@@ -3,6 +3,7 @@
 namespace On3\DAP;
 
 use On3\DAP\Platforms\AnJuBao;
+use On3\DAP\Platforms\FreeView;
 use On3\DAP\Platforms\JieShun;
 use On3\DAP\Platforms\KeyTop;
 
@@ -29,6 +30,13 @@ class DAP
     {
         $dap = new self;
         $dap->platform = new JieShun($config, $dev);
+        return $dap;
+    }
+
+    public static function freeView(array $config, bool $dev = false): self
+    {
+        $dap = new self;
+        $dap->platform = new FreeView($config, $dev);
         return $dap;
     }
 

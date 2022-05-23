@@ -9,6 +9,8 @@ abstract class Platform implements PlatformInterface
 {
     const METHOD_GET = 'get';
     const METHOD_POST = 'post';
+    const METHOD_DELETE = 'delete';
+    const METHOD_PUT = 'put';
 
     protected $httpMethod = self::METHOD_POST;
     protected $timeout = 3;
