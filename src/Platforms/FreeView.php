@@ -150,7 +150,7 @@ class FreeView extends Platform
         $this->name = '撤销人体特征';
         $this->loadingHeaderToken();
         $this->uri = self::BODY_FEATURES_URI;
-        $this->httpMethod = self::METHOD_PUT;
+        $this->httpMethod = self::METHOD_DELETE;
 
         if (!($this->queryBody['TenantCode'] = Arr::get($bodyPacket, 'TenantCode') ?: $this->TenantCode)) {
             $this->cancel = true;
