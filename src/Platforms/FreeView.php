@@ -26,6 +26,7 @@ class FreeView extends Platform
     const GET_TOKEN_URI = 'accesstoken';
     const ACCESS_CARDS_URI = 'GeneralCards';
     const BODY_FEATURES_URI = 'GeneralHumanFeaturesWithTesting';
+    const BODY_FEATURES_DEL_URI = 'GeneralHumanFeatures';
     const REMOTE_UNLOCK_DOOR_URI = 'RemoteUnlock/GeneralOpenDoor';
 
     public function __construct(array $config, bool $dev = false)
@@ -149,7 +150,7 @@ class FreeView extends Platform
     {
         $this->name = '撤销人体特征';
         $this->loadingHeaderToken();
-        $this->uri = self::BODY_FEATURES_URI;
+        $this->uri = self::BODY_FEATURES_DEL_URI;
         $this->httpMethod = self::METHOD_DELETE;
 
         if (!($this->queryBody['TenantCode'] = Arr::get($bodyPacket, 'TenantCode') ?: $this->TenantCode)) {
