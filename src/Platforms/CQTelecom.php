@@ -15,7 +15,7 @@ class CQTelecom extends Platform
 
     protected $gateway;
     protected $headers = [];
-    const KEY = 'ybwy2017interface';
+    protected $key;
     const USER_URI = 'pmPerson/save';
     protected $timeout = 10;
 
@@ -30,6 +30,9 @@ class CQTelecom extends Platform
         } else {
             $this->gateway = $dev ? Gateways::CQ_TELECOM_DEV : Gateways::CQ_TELECOM;
         }
+
+        $this->key = Arr::get($config, 'key');
+        $this->configValidator();
         $this->injectLogObj();
     }
 
@@ -130,7 +133,9 @@ class CQTelecom extends Platform
 
     protected function configValidator()
     {
-        // TODO: Implement configValidator() method.
+        if (!$this->key) {
+            throw new InvalidArgumentException('key不得为空');
+        }
     }
 
     protected function generateSignature()

@@ -40,6 +40,7 @@ class FreeView extends Platform
         } else {
             $this->gateway = $dev ? Gateways::FREE_VIEW_DEV : Gateways::FREE_VIEW;
         }
+        $this->configValidator();
         $this->injectLogObj();
         $this->injectToken();
     }
