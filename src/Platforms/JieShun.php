@@ -704,6 +704,12 @@ class JieShun extends Platform
             }
             $attributes['month'] = $month;
 
+            if (!$parkCode) {
+                $this->cancel = true;
+                $this->errBox[] = '车场编号不可为空';
+            }
+            $attributes['parkCode'] = $parkCode;
+
             if (!is_numeric($money)) {
                 $this->cancel = true;
                 $this->errBox[] = '金额必须为数字';
