@@ -23,7 +23,10 @@ trait DAPHashTrait
     {
         $str = '';
         foreach ($queryPacket as $key => $value) {
-            if ($value && !is_array($value)) {
+            if ($value) {
+                if (is_array($value)) {
+                    $value = @json_encode($value);
+                }
                 $str && $str .= '&';
                 $str .= $key . '=' . $value;
             }

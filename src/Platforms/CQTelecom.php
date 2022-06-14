@@ -4,6 +4,7 @@ namespace On3\DAP\Platforms;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Traits\DAPHashTrait;
@@ -15,9 +16,10 @@ class CQTelecom extends Platform
 
     protected $gateway;
     protected $headers = [];
-    protected $key;
+    protected $appKey;
+    protected $appSecret;
     const USER_URI = 'pmPerson/save';
-    protected $timeout = 10;
+    protected $timeout = 5;
 
     const ACT_ADD = 'add';
     const ACT_UPDATE = 'update';
@@ -25,13 +27,16 @@ class CQTelecom extends Platform
 
     public function __construct(array $config, bool $dev = false)
     {
+
+        $this->appKey = Arr::get($config, 'appKey');
+        $this->appSecret = Arr::get($config, 'appSecret');
+
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
         } else {
             $this->gateway = $dev ? Gateways::CQ_TELECOM_DEV : Gateways::CQ_TELECOM;
         }
 
-        $this->key = Arr::get($config, 'key');
         $this->configValidator();
         $this->injectLogObj();
     }
@@ -133,14 +138,23 @@ class CQTelecom extends Platform
 
     protected function configValidator()
     {
-        if (!$this->key) {
-            throw new InvalidArgumentException('key不得为空');
+        if (!$this->appKey) {
+            throw new InvalidArgumentException('appKey不得为空');
+        }
+
+        if (!$this->appSecret) {
+            throw new InvalidArgumentException('appSecret不得为空');
         }
     }
 
     protected function generateSignature()
     {
-        $this->headers['Sign'] = strtoupper(md5($this->join2Str($this->queryBody)));
+        $nonce = Str::random(8);
+        $timestamp = time();
+        $this->headers['Nonce'] = $nonce;
+        $this->headers['Timestamp'] = $timestamp;
+        $this->headers['Sign'] = strtoupper(md5($timestamp . $nonce . json_encode($this->queryBody) . $this->appKey . $this->appSecret));
+        $this->headers['AppKey'] = $this->appKey;
     }
 
     protected function formatResp(&$response)
