@@ -153,7 +153,7 @@ class CQTelecom extends Platform
         $timestamp = time();
         $this->headers['Nonce'] = $nonce;
         $this->headers['Timestamp'] = $timestamp;
-        $this->headers['Sign'] = strtoupper(md5($timestamp . $nonce . json_encode($this->queryBody) . $this->appKey . $this->appSecret));
+        $this->headers['Sign'] = sha1($timestamp . $nonce . json_encode($this->queryBody) . $this->appKey . $this->appSecret);
         $this->headers['AppKey'] = $this->appKey;
     }
 
