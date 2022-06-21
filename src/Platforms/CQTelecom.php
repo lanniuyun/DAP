@@ -18,7 +18,9 @@ class CQTelecom extends Platform
     protected $headers = [];
     protected $appKey;
     protected $appSecret;
-    const USER_URI = 'pmPerson/save';
+    const USER_SAVE_URI = 'pmPerson/save';
+    const USER_DEL_URI = 'pmPerson/delete';
+    const USER_SET_URI = 'face/down';
     protected $timeout = 5;
 
     const ACT_ADD = 'add';
@@ -37,13 +39,17 @@ class CQTelecom extends Platform
             $this->gateway = $dev ? Gateways::CQ_TELECOM_DEV : Gateways::CQ_TELECOM;
         }
 
+        if ($timeout = Arr::get($config, 'timeout')) {
+            $this->timeout = floatval($timeout) ?: 5;
+        }
+
         $this->configValidator();
         $this->injectLogObj();
     }
 
     public function setUsers(array $bodyPacket): self
     {
-        $this->uri = self::USER_URI;
+        $this->uri = self::USER_SAVE_URI;
         $this->name = '编辑人员信息';
         $users = Arr::get($bodyPacket, 'users');
         foreach ($users as $user) {
@@ -86,7 +92,7 @@ class CQTelecom extends Platform
     public function rmUsers(array $bodyPacket): self
     {
         $this->name = '移除人员信息';
-        $this->uri = 'pmPerson/delete';
+        $this->uri = self::USER_DEL_URI;
 
         if (!$uid = Arr::get($bodyPacket, 'uid')) {
             $this->cancel = true;
@@ -103,7 +109,7 @@ class CQTelecom extends Platform
 
     public function authorizedBodyFeatures(array $bodyPacket): self
     {
-        $this->uri = 'face/down';
+        $this->uri = self::USER_SET_URI;
         $this->name = '下发人体特征';
 
         if (!$uid = Arr::get($bodyPacket, 'uid')) {
@@ -133,6 +139,7 @@ class CQTelecom extends Platform
             $this->errBox[] = '操作类型错误';
         }
         $this->queryBody = compact('uid', 'deviceSn', 'type');
+        $this->generateSignature();
         return $this;
     }
 
