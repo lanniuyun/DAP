@@ -1429,6 +1429,7 @@ class JieShun extends Platform
 
     public function fire()
     {
+        $apiName = $this->name;
         $httpMethod = $this->httpMethod;
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
         if ($this->cancel) {
@@ -1445,6 +1446,7 @@ class JieShun extends Platform
             $contentStr = $rawResponse->getBody()->getContents();
             $contentArr = @json_decode($contentStr, true);
             $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+
             $this->cleanup();
 
             if ($rawResponse->getStatusCode() === 200) {
@@ -1461,7 +1463,7 @@ class JieShun extends Platform
                         return $rawResponse;
                 }
             } else {
-                throw new RequestFailedException('接口请求失败:' . $this->name);
+                throw new RequestFailedException('接口请求失败:' . $apiName);
             }
         }
     }

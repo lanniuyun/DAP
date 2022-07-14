@@ -2,11 +2,14 @@
 
 namespace On3\DAP;
 
+use Illuminate\Support\Arr;
 use On3\DAP\Platforms\AnJuBao;
 use On3\DAP\Platforms\CQTelecom;
 use On3\DAP\Platforms\FreeView;
 use On3\DAP\Platforms\JieShun;
 use On3\DAP\Platforms\KeyTop;
+use On3\DAP\Platforms\UniUbi\WT;
+use On3\DAP\Platforms\UniUbi\WO;
 
 class DAP
 {
@@ -14,7 +17,6 @@ class DAP
 
     private function __construct()
     {
-        //NOTHING TO DO
     }
 
     /**
@@ -59,6 +61,19 @@ class DAP
     {
         $dap = new self;
         $dap->platform = new AnJuBao($config, $dev);
+        return $dap;
+    }
+
+    static public function uniUbi(array $config, bool $dev = false): self
+    {
+        $dap = new self;
+        $ver = Arr::get($config, 'ver') ?: 'wo';
+        if (strtolower($ver) === 'wt') {
+            $platformClass = WT::class;
+        } else {
+            $platformClass = WO::class;
+        }
+        $dap->platform = new $platformClass($config, $dev);
         return $dap;
     }
 

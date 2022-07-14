@@ -20,4 +20,7 @@ class Gateways
 
     const CQ_TELECOM_DEV = 'http://118.31.244.168:18007/api/v1/lanniu/api/';
     const CQ_TELECOM = 'http://118.31.244.168:18007/api/v1/lanniu/api/';
+
+    const WT = 'http://gs-api.uface.uni-ubi.com/v1/';
+    const WT_DEV = 'http://gs-api.uface.uni-ubi.com/v1/';
 }
