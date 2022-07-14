@@ -230,10 +230,11 @@ class WT extends Platform
 
     protected function formatResp(&$response)
     {
-        if (Arr::get($response, 'Code') === 200) {
+        if (Arr::get($response, 'success') === true) {
             $resPacket = ['code' => 0, 'msg' => 'SUCCESS', 'data' => [], 'raw_resp' => $response];
         } else {
-            $resPacket = ['code' => 500, 'msg' => Arr::get($response, 'Msg') ?: '操作失败', 'data' => [], 'raw_resp' => $response];
+            $msg = Arr::get(self::CODES, Arr::get($response, 'code') ?: '') ?: '未知报错';
+            $resPacket = ['code' => 500, 'msg' => $msg, 'data' => [], 'raw_resp' => $response];
         }
         $response = $resPacket;
     }
