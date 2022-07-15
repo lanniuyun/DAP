@@ -370,12 +370,110 @@ class WT extends Platform
         return $this;
     }
 
-    protected function packetBody(array $body)
+    /**
+     * @param array $queryPacket
+     * target string N 操作目标 people:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
+     * SNs string Y 设备序列号 可用,隔开
+     * UIDs string Y 员工IDs 可用,隔开
+     * passTimes string N 每日允许进入的时间段 例:09:00:00,11:00:00,13:00:00,15:00:00,17:00:00,19:00:00
+     *                                      最多可设置3段，若只设置1段，则后两段不传即可，如：09:00:00,11:00:00
+     *                                      报错类型：时间段参数数量不正确或超出3段限制、时间段参数后时间段早于前时间段、时间段参数超出限制、时间段参数格式错误
+     *                                      若要更新人员的passTimes，则需再次对人员进行授权；调用授权接口并重新传入passTimes
+     * facePermission int N 刷脸权限 1:关 2: 开/默认
+     * cardPermission int N 刷卡权限 1:关 2: 开/默认
+     * cardFacePermission int N 人卡合一权限 1:关 2: 开/默认
+     * idcardFacePermission int N 人证比对权限 1:关 2: 开/默认
+     * effectiveTime string N 有效期到后，删除该人员 例:2017-07-15 12:05:00
+     * @return $this
+     */
+    public function authorizedBodyFeatures(array $queryPacket = []): self
+    {
+        $passTimes = Arr::get($queryPacket, 'passTimes');
+        $effectiveTime = Arr::get($queryPacket, 'effectiveTime');
+        $facePermission = intval(Arr::get($queryPacket, 'facePermission'));
+        $cardPermission = intval(Arr::get($queryPacket, 'cardPermission'));
+        $cardFacePermission = intval(Arr::get($queryPacket, 'cardFacePermission'));
+        $idcardFacePermission = intval(Arr::get($queryPacket, 'idcardFacePermission'));
+
+        $body = compact('passTimes', 'effectiveTime', 'facePermission', 'cardFacePermission', 'cardPermission', 'idcardFacePermission');
+
+        switch (strtolower(Arr::get($queryPacket, 'target'))) {
+            case 'people':
+                break;
+            case 'device':
+            default:
+
+                if (!$SNs = Arr::get($queryPacket, 'SNs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+                $SNs = explode(',', $SNs);
+
+                if (!$deviceKey = current($SNs)) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+
+                if (!$personGuids = Arr::get($queryPacket, 'UIDs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '员工ID不得为空';
+                }
+                $body['personGuids'] = $personGuids;
+                $body['deviceKey'] = $deviceKey;
+                $this->uri = "device/{$deviceKey}/people";
+                $this->name = '设备授权人员接口';
+                break;
+        }
+        $this->packetBody($body);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * target string N 操作目标 people:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
+     * SNs string N 设备序列号 可用,隔开
+     * UIDs string N 员工IDs 可用,隔开
+     * empty bool N 清空
+     * @return $this
+     */
+    public function cancelBodyFeatures(array $queryPacket = []): self
+    {
+        $body = [];
+        switch (strtolower(Arr::get($queryPacket, 'target'))) {
+            case 'people':
+                break;
+            case 'device':
+            default:
+                if (!$SNs = Arr::get($queryPacket, 'SNs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+                $SNs = explode(',', $SNs);
+
+                if (!$deviceKey = current($SNs)) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+
+                if (!$personGuids = Arr::get($queryPacket, 'UIDs')) {
+
+                } else {
+
+                }
+                break;
+        }
+        $this->packetBody($body);
+        return $this;
+    }
+
+    protected
+    function packetBody(array $body)
     {
         $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->token]);
     }
 
-    protected function configValidator()
+    protected
+    function configValidator()
     {
         if (!$this->appId) {
             throw new InvalidArgumentException('应用ID不得为空');
@@ -390,12 +488,14 @@ class WT extends Platform
         }
     }
 
-    protected function generateSignature()
+    protected
+    function generateSignature()
     {
         // TODO: Implement generateSignature() method.
     }
 
-    protected function formatResp(&$response)
+    protected
+    function formatResp(&$response)
     {
         if (Arr::get($response, 'success') === true) {
             $resPacket = ['code' => 0, 'msg' => 'SUCCESS'];
@@ -408,7 +508,8 @@ class WT extends Platform
         $response = $resPacket;
     }
 
-    public function fire()
+    public
+    function fire()
     {
         $apiName = $this->name;
         $httpMethod = $this->httpMethod;
