@@ -2,6 +2,7 @@
 
 namespace On3\DAP\Platforms\UniUbi;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use On3\DAP\Exceptions\InvalidArgumentException;
@@ -187,7 +188,7 @@ class WT extends Platform
     {
         if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
             $this->cancel = true;
-            $this->errBox[] = '设备编号不得为空';
+            $this->errBox[] = '设备序列号不得为空';
         }
 
         if ((Arr::get($queryPacket, 'act') ?: 1) === 1) {
@@ -199,8 +200,8 @@ class WT extends Platform
             $this->httpMethod = self::METHOD_PUT;
         }
 
-        $name = Arr::get($queryPacket, 'name') ?: '';
-        $tag = Arr::get($queryPacket, 'tag') ?: '';
+        $name = Arr::get($queryPacket, 'name');
+        $tag = Arr::get($queryPacket, 'tag');
         $this->packetBody(compact('deviceKey', 'name', 'tag'));
         return $this;
     }
@@ -213,15 +214,158 @@ class WT extends Platform
      */
     public function deviceInfo(array $queryPacket = []): self
     {
-        $this->uri = 'device/';
-        $this->name = '设备信息查询';
         if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
             $this->cancel = true;
-            $this->errBox[] = '设备编号不得为空';
+            $this->errBox[] = '设备序列号不得为空';
         }
 
-        $this->uri .= $deviceKey;
+        $this->name = '设备信息查询';
+        $this->uri = 'device/' . $deviceKey;
         $this->httpMethod = self::METHOD_GET;
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string N 设备序列号
+     * tag string N 设备标签 tag传入后，服务器会返回加密形式后的tag，可用于设备分类
+     * state int N 设备状态  1：未绑定，设备-appId绑定关系
+     *                      2：绑定中，设备与云端确认通信中
+     *                      3：解绑中，设备删除中，与appId解绑中
+     *                      4：未同步，云端数据未同步至设备
+     *                      5：同步中，云端数据正在同步至设备
+     *                      6：已同步，云端数据已同步至设备
+     *                      7：已禁用，设备不可被使用
+     *                      8：禁用中，设备正在“禁用”过程中
+     *                      9：启用中，设备正在“启用”过程中
+     * startTime Date N 录入时间起始
+     * endTime Date N 录入时间末尾
+     * index int N 页数
+     * length int N 每页条数 默认为5
+     * systemVersionNo string N 设备系统版本号
+     * versionNo string N 设备应用版本号
+     * orderFieldKey string N 按照某字段排序  2:DEVICE_KEY //设备序列号 9:CREATE_TIME //创建时间 默认DEVICE_KEY
+     * orderTypeKey string N 生姜序 1:ASC //升序 2:DESC //降序　默认升序
+     * @return $this
+     */
+    public function deviceList(array $queryPacket = []): self
+    {
+        $this->uri = 'devices/search';
+        $this->name = '设备列表查询';
+
+        $tag = Arr::get($queryPacket, 'tag');
+        $deviceKey = Arr::get($queryPacket, 'SN');
+        if ($state = Arr::get($queryPacket, 'state')) {
+            if ($state < 1 || $state > 9) {
+                $this->cancel = true;
+                $this->errBox[] = '设备状态传参错误';
+            }
+        }
+
+        if ($startTime = Arr::get($queryPacket, 'startTime')) {
+            try {
+                $startTime = Carbon::parse($startTime)->toDateString();
+            } catch (\Throwable $exception) {
+            }
+        }
+
+        if ($endTime = Arr::get($queryPacket, 'endTime')) {
+            try {
+                $endTime = Carbon::parse($endTime)->toDateString();
+            } catch (\Throwable $exception) {
+            }
+        }
+
+        $index = intval(Arr::get($queryPacket, 'index'));
+        $length = intval(Arr::get($queryPacket, 'length'));
+        $systemVersionNo = Arr::get($queryPacket, 'systemVersionNo');
+        $versionNo = Arr::get($queryPacket, 'versionNo');
+        $orderFieldKey = Arr::get($queryPacket, 'orderFieldKey');
+        $orderTypeKey = Arr::get($queryPacket, 'orderTypeKey');
+        $this->packetBody(compact('deviceKey', 'state', 'tag', 'startTime', 'endTime', 'index', 'length', 'systemVersionNo', 'versionNo', 'orderFieldKey', 'orderTypeKey'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * 调用设备创建接口前，需调用设备删除接口将设备-appId解绑，否则重复添加设备会报错
+     * 调用过设备删除接口后，不可继续调用业务接口，异常如：重复调用设备删除接口出错；需重新调用设备创建接口后才可调用业务接口
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function unBindDevice(array $queryPacket = []): self
+    {
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->name = '设备解绑';
+        $this->uri = 'device/' . $deviceKey;
+        $this->httpMethod = self::METHOD_DELETE;
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *设备创建、设备绑定成功后，设备会自动同步
+     * 设备绑定成功后state为4：未同步、5：同步、6：已同步，都可以调用设备同步接口，将云端中存储的信息同步到设备上
+     * 调用设备批量授权人员接口后，设备会向云端服务器请求进行同步，将新增人员数据同步至设备
+     * 调用设备批量销权人员接口后，设备会向云端服务器请求进行同步，设备接收并进行删除人员操作
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function syncDevice(array $queryPacket = []): self
+    {
+        $this->uri = 'device/synchronization';
+        $this->name = '设备同步';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * do string Y  enable:启用 disable:禁用 reset:重置 recovery:校准
+     * @return $this
+     */
+    public function settingDevice(array $queryPacket = []): self
+    {
+
+        switch (strtolower(Arr::get($queryPacket, 'do'))) {
+            case 'enable':
+                $this->name = '设备启用';
+                $this->uri = 'device/enabling';
+                break;
+            case 'disable':
+                $this->name = '设备禁用';
+                $this->uri = 'device/disabling';
+                break;
+            case 'reset':
+                $this->name = '设备重置';
+                $this->uri = 'device/reset';
+                break;
+            case 'recovery':
+                $this->name = '设备校对';
+                $this->uri = 'device/dataRecovery';
+                break;
+            default:
+                $this->cancel = true;
+                $this->errBox[] = '设备设置的行为不得为空';
+                break;
+        }
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
         $this->packetBody(['deviceKey' => $deviceKey]);
         return $this;
     }
