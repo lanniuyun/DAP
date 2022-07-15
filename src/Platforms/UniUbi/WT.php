@@ -466,14 +466,12 @@ class WT extends Platform
         return $this;
     }
 
-    protected
-    function packetBody(array $body)
+    protected function packetBody(array $body)
     {
         $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->token]);
     }
 
-    protected
-    function configValidator()
+    protected function configValidator()
     {
         if (!$this->appId) {
             throw new InvalidArgumentException('应用ID不得为空');
@@ -488,14 +486,12 @@ class WT extends Platform
         }
     }
 
-    protected
-    function generateSignature()
+    protected function generateSignature()
     {
         // TODO: Implement generateSignature() method.
     }
 
-    protected
-    function formatResp(&$response)
+    protected function formatResp(&$response)
     {
         if (Arr::get($response, 'success') === true) {
             $resPacket = ['code' => 0, 'msg' => 'SUCCESS'];
@@ -508,8 +504,7 @@ class WT extends Platform
         $response = $resPacket;
     }
 
-    public
-    function fire()
+    public function fire()
     {
         $apiName = $this->name;
         $httpMethod = $this->httpMethod;
