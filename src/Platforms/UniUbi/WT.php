@@ -20,9 +20,6 @@ class WT extends Platform
     protected $appSecret;
     protected $token;
 
-    const AUTH_URI = "/auth";
-    const DEVICE_BIND = '/device';
-
     const CODES = [
         'GS_EXP-100' => '接口授权appKey错误',
         'GS_EXP-101' => '接口授权sign错误',
@@ -133,6 +130,7 @@ class WT extends Platform
         'ERR004' => '系统内部异常',
         'ERR005' => '数据不存在异常',
         'ERR006' => '验证异常',
+        'OGS_EXP-1906' => '错误的请求方式',
     ];
 
     public function __construct(array $config, bool $dev = false)
@@ -147,7 +145,7 @@ class WT extends Platform
         $this->appKey = Arr::get($config, 'appKey');
         $this->appSecret = Arr::get($config, 'appSecret');
 
-        //$this->injectLogObj();
+        $this->injectLogObj();
         $this->configValidator();
         $this->injectToken();
     }
@@ -169,7 +167,7 @@ class WT extends Platform
 
     public function auth(): self
     {
-        $this->fixUri(self::AUTH_URI);
+        $this->uri = 'auth';
         $this->name = '接口鉴权';
         $timestamp = intval(microtime(true));
         $this->queryBody = ['appId' => $this->appId, 'appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
@@ -179,28 +177,53 @@ class WT extends Platform
     /**
      * @param array $queryPacket
      * 有两种情况：全新的设备，首次创建，首次录入云端；之前创建过，调用设备删除接口断开设备与云端的关联后，可再次创建，重新录入云端
-     * deviceKey string Y 设备序列号
+     * SN string Y 设备序列号
      * name string N 设备名称
      * tag string N 设备标签 tag传入后，服务器会返回加密形式后的tag，可用于设备分类
+     * act string N 操作 1:建立 2:更新
      * @return $this
      */
-    public function deviceBind(array $queryPacket = []): self
+    public function bindDevice(array $queryPacket = []): self
     {
-        $this->fixUri(self::DEVICE_BIND);
-        $this->name = '设备绑定';
-        if (!$deviceKey = Arr::get($queryPacket, 'deviceKey')) {
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
             $this->cancel = true;
             $this->errBox[] = '设备编号不得为空';
         }
+
+        if ((Arr::get($queryPacket, 'act') ?: 1) === 1) {
+            $this->uri = 'device';
+            $this->name = '设备绑定建立';
+        } else {
+            $this->uri = 'device/' . $deviceKey;
+            $this->name = '设备绑定更新';
+            $this->httpMethod = self::METHOD_PUT;
+        }
+
         $name = Arr::get($queryPacket, 'name') ?: '';
         $tag = Arr::get($queryPacket, 'tag') ?: '';
         $this->packetBody(compact('deviceKey', 'name', 'tag'));
         return $this;
     }
 
-    protected function fixUri(string $uri)
+    /**
+     * @param array $queryPacket
+     * 设备创建、已同步后，一般都要查询该设备状态，以检查设备是否能够进行后续操作；当设备状态state为6：已同步，则设备可以开始授权和识别
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function deviceInfo(array $queryPacket = []): self
     {
-        $this->uri = $this->appId . $uri;
+        $this->uri = 'device/';
+        $this->name = '设备信息查询';
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        $this->uri .= $deviceKey;
+        $this->httpMethod = self::METHOD_GET;
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
     }
 
     protected function packetBody(array $body)
@@ -231,19 +254,25 @@ class WT extends Platform
     protected function formatResp(&$response)
     {
         if (Arr::get($response, 'success') === true) {
-            $resPacket = ['code' => 0, 'msg' => 'SUCCESS', 'data' => [], 'raw_resp' => $response];
+            $resPacket = ['code' => 0, 'msg' => 'SUCCESS'];
         } else {
-            $msg = Arr::get(self::CODES, Arr::get($response, 'code') ?: '') ?: '未知报错';
-            $resPacket = ['code' => 500, 'msg' => $msg, 'data' => [], 'raw_resp' => $response];
+            $msg = (Arr::get(self::CODES, Arr::get($response, 'code') ?: '') ?: Arr::get($response, 'msg')) ?: '请求发生未知异常';
+            $resPacket = ['code' => 500, 'msg' => $msg];
         }
+        $resPacket['data'] = Arr::get($response, 'data') ?: [];
+        $resPacket['raw_resp'] = $response;
         $response = $resPacket;
     }
 
     public function fire()
     {
-        $httpMethod = $this->httpMethod;
         $apiName = $this->name;
-        $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+        $httpMethod = $this->httpMethod;
+        $uri = $this->appId . '/' . $this->uri;
+        $gateway = trim($this->gateway, '/') . '/';
+
+        $httpClient = new Client(['base_uri' => $gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
         if ($this->cancel) {
             $errBox = $this->errBox;
             if (is_array($errBox)) {
@@ -254,10 +283,19 @@ class WT extends Platform
             $this->cleanup();
             throw new InvalidArgumentException($errMsg);
         } else {
-            $rawResponse = $httpClient->$httpMethod($this->uri, ['form_params' => $this->queryBody]);
+            switch ($this->httpMethod) {
+                case self::METHOD_GET:
+                    $rawResponse = $httpClient->$httpMethod($uri . '?' . http_build_query($this->queryBody));
+                    break;
+                case self::METHOD_POST:
+                case self::METHOD_PUT:
+                default:
+                    $rawResponse = $httpClient->$httpMethod($uri, ['form_params' => $this->queryBody]);
+                    break;
+            }
             $respRaw = $rawResponse->getBody()->getContents();
             $respArr = @json_decode($respRaw, true) ?: [];
-            $this->logging && $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'queryBody' => $this->queryBody, 'response' => $respArr]);
 
             $this->cleanup();
 
