@@ -863,6 +863,128 @@ class WT extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * name string Y 姓名
+     * UID string N 人员ID
+     * idNo string N IC卡/身份证卡号
+     * phone string N 手机号
+     * tag string N 人员标签 可自行定义
+     * type int N 人员类型 可自行定义 ,支持正整数，0没有意义
+     * idcardNo string N 身份证卡号
+     * @return $this
+     */
+    public function setUser(array $queryPacket = []): self
+    {
+
+        if ($guid = Arr::get($queryPacket, 'UID')) {
+            $this->uri = "person/{guid}";
+            $this->name = '人员更新';
+            $this->httpMethod = self::METHOD_PUT;
+        } else {
+            $this->uri = 'person';
+            $this->name = '人员录入';
+        }
+
+        if (!$name = Arr::get($queryPacket, 'name')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员姓名不得为空';
+        }
+
+        $type = intval(Arr::get($queryPacket, 'type'));
+        $idNo = Arr::get($queryPacket, 'idNo');
+        $phone = Arr::get($queryPacket, 'phone');
+        $tag = Arr::get($queryPacket, 'tag');
+        $idcardNo = Arr::get($queryPacket, 'idcardNo');
+
+        $this->packetBody(compact('name', 'type', 'idNo', 'phone', 'tag', 'idcardNo', 'guid'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * @return $this
+     */
+    public function rmUser(array $queryPacket = []): self
+    {
+        $this->name = '人员删除';
+        if (!$guid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+        $this->uri = "person/{$guid}";
+        $this->httpMethod = self::METHOD_DELETE;
+        $this->packetBody(compact('guid'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * @return $this
+     */
+    public function getUser(array $queryPacket = []): self
+    {
+        $this->name = '人员查询';
+        $this->httpMethod = self::METHOD_GET;
+        if (!$guid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+        $this->uri = "person/{$guid}";
+        $this->packetBody(compact('guid'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * name string N 人员姓名
+     * tag string N 标签
+     * idNo string N IC卡
+     * phone string N 手机号
+     * startTime date N 录入时间起始
+     * endTime date N 录入时间末尾
+     * length int N 每页数量
+     * type int N 人员类型
+     * index int N 页码
+     * UID string N 人员ID
+     * userUID string N 人员所有者（客户）
+     * orderFieldKey int N  按照某字段排序 1:GUID //人员guid
+     *                                  2:USER_GUID //人员所有者（客户）guid
+     *                                  3:NAME //人员姓名
+     *                                  4: ID_NO //身份证
+     *                                  5:PHONE //手机号
+     *                                  6:CREATE_TIME //创建时间
+     *                                  默认CREATE_TIME
+     * orderTypeKey 升降序 int N  1:ASC //升序2:DESC //降序；默认升序
+     * idcardNo string N 身份证号
+     * @return $this
+     */
+    public function searchUser(array $queryPacket = []): self
+    {
+        $this->uri = 'people/search';
+        $this->name = '人员搜索';
+
+        $name = Arr::get($queryPacket, 'name');
+        $tag = Arr::get($queryPacket, 'tag');
+        $idNo = Arr::get($queryPacket, 'idNo');
+        $phone = Arr::get($queryPacket, 'phone');
+        $startTime = Arr::get($queryPacket, 'startTime');
+        $endTime = Arr::get($queryPacket, 'endTime');
+        $length = Arr::get($queryPacket, 'length');
+        $type = Arr::get($queryPacket, 'type');
+        $index = Arr::get($queryPacket, 'index');
+        $guid = Arr::get($queryPacket, 'UID');
+        $userGuid = Arr::get($queryPacket, 'userUID');
+        $orderFieldKey = Arr::get($queryPacket, 'orderFieldKey');
+        $orderTypeKey = Arr::get($queryPacket, 'orderTypeKey');
+        $idcardNo = Arr::get($queryPacket, 'idcardNo');
+
+        $this->packetBody(compact('name', 'tag', 'idNo', 'phone', 'startTime', 'endTime', 'length', 'type', 'index', 'guid', 'userGuid', 'orderTypeKey', 'orderFieldKey', 'idcardNo'));
+        return $this;
+    }
+
     protected function packetBody(array $body)
     {
         $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->token]);
