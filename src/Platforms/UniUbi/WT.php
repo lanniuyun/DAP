@@ -485,7 +485,7 @@ class WT extends Platform
      * SN string Y 设备序列号
      * @return $this
      */
-    public function fetchBodyFeatures(array $queryPacket = []): self
+    public function getBodyFeatures(array $queryPacket = []): self
     {
         $this->name = '设备授权人员查询';
         $this->httpMethod = self::METHOD_GET;
@@ -592,7 +592,7 @@ class WT extends Platform
      * personNumDisplayEnable int Y 人员数显示 1：显示；2：隐藏；
      * @return $this
      */
-    public function configureDevice(array $queryPacket = []): self
+    public function configureDeviceConf(array $queryPacket = []): self
     {
         $this->httpMethod = self::METHOD_PUT;
         $this->name = '修改设备配置';
@@ -744,6 +744,122 @@ class WT extends Platform
             'strangerRelayEnable', 'strangerOutputMode', 'strangerOutputModeContent', 'strangerWiegandType', 'strangerWiegandContent', 'strangerScreenMode', 'strangerScreenModeContent', 'ipDisplayEnable',
             'deviceKeyDisplayEnable', 'personNumDisplayEnable'
         ));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function getDeviceConf(array $queryPacket = []): self
+    {
+        $this->name = '查询设备配置';
+        $this->httpMethod = self::METHOD_GET;
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->uri = "device/{$deviceKey}/setting";
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function upgradeDeviceSys(array $queryPacket = []): self
+    {
+        $this->name = '设备升级接口';
+        $this->uri = 'device/upgrade';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * srcSN string Y 源设备序列号
+     * destSN string Y 目标设备序列号
+     * @return $this
+     */
+    public function copyBodyFeatures(array $queryPacket = []): self
+    {
+        $this->uri = 'device/people/copy';
+        $this->name = '设备授权人员复制';
+
+        if (!$srcDeviceKey = Arr::get($queryPacket, 'srcSN')) {
+            $this->cancel = true;
+            $this->errBox[] = '源设备序列号不得为空';
+        }
+
+        if (!$destDeviceKey = Arr::get($queryPacket, 'destSN')) {
+            $this->cancel = true;
+            $this->errBox[] = '目标设备序列号不得为空';
+        }
+        $this->packetBody(compact('srcDeviceKey', 'destDeviceKey'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * type int Y 设备模式类型 1：拍照注册；2：IC卡/身份证卡号注册
+     * UID string N 员工ID
+     * @return $this
+     */
+    public function settingRegStateDevice(array $queryPacket = []): self
+    {
+        $this->name = '开启设备注册模式';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        if (!$type = Arr::get($queryPacket, 'type')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备模式类型不得为空';
+        }
+
+        $this->uri = "device/{$deviceKey}/mode/state";
+        $personGuid = Arr::get($queryPacket, 'UID');
+        $this->packetBody(compact('type', 'personGuid', 'deviceKey'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * type int Y 设备模式类型 1：开门；2：串口输出；3：韦根输出；默认值为1；4：表示自定义弹窗提示和自定义语音播报
+     * content string N  输出内容 若type选择2： 串口，只允许数字、英文和英文字符，长度限制255个字符。 串口支持输出韦根信号，一代设备需要外接串口→韦根信号转换小板，小板由本公司定制。自定义内容传入格式：韦根26：#WG任意数字#，韦根34：#34WG任意数字#
+     *                      若type选择3：韦根，只允许数字。 韦根26：#WG任意数字#，韦根34：#34WG任意数字#
+     *                      若type选择4：为json包裹
+     *                      {"ttsModContent":"语音提示","displayModContent":"弹窗提示"}
+     * @return $this
+     */
+    public function controlDevice(array $queryPacket = []): self
+    {
+        $this->name = '设备交互';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->uri = "deviceInteractiveRecord/{$deviceKey}";
+        $type = Arr::get($queryPacket, 'type');
+        $content = Arr::get($queryPacket, 'content');
+        $this->packetBody(compact('type', 'content', 'deviceKey'));
         return $this;
     }
 
