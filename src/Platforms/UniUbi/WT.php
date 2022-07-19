@@ -439,6 +439,7 @@ class WT extends Platform
     public function cancelBodyFeatures(array $queryPacket = []): self
     {
         $body = [];
+        $empty = Arr::get($queryPacket, 'empty');
         switch (strtolower(Arr::get($queryPacket, 'target'))) {
             case 'people':
                 break;
@@ -455,14 +456,294 @@ class WT extends Platform
                     $this->errBox[] = '设备序列号不得为空';
                 }
 
-                if (!$personGuids = Arr::get($queryPacket, 'UIDs')) {
+                if (is_bool($empty)) {
+                    $personGuid = null;
+                    $this->uri = "device/{$deviceKey}/people";
+                    $this->name = '设备销权人员';
+                    $this->httpMethod = self::METHOD_DELETE;
 
+                    $body = compact('deviceKey', 'personGuid');
                 } else {
+                    if (!$personGuids = Arr::get($queryPacket, 'UIDs')) {
+                        $this->cancel = true;
+                        $this->errBox[] = '设备序列号不得为空';
+                    }
+                    $this->uri = "device/{$deviceKey}/people/delete";
+                    $this->name = '设备销权批量人员';
+                    $this->httpMethod = self::METHOD_POST;
 
+                    $body = compact('deviceKey', 'personGuids');
                 }
                 break;
         }
         $this->packetBody($body);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * @return $this
+     */
+    public function fetchBodyFeatures(array $queryPacket = []): self
+    {
+        $this->name = '设备授权人员查询';
+        $this->httpMethod = self::METHOD_GET;
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->uri = "device/{$deviceKey}/people";
+        $this->packetBody(['deviceKey' => $deviceKey]);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * ttsModType int Y 语音模式 1：不需要语音播报；
+     *                          2：播报name；
+     *                          ......
+     *                          100：自定义
+     * ttsModContent string N 语音模式自定义内容  1：模板中只允许{name}字段，字段格式固定；
+     *                                          2：模板中只允许数字、英文、中文和 “{”、“}”；
+     *                                          3：内容长度限制255个字，请自行调整
+     *                                          例：{name}欢迎光临
+     * displayModType int Y 显示模式 1：显示name；
+     *                              2：不显示；
+     *                              ......
+     *                              100：自定义
+     * displayModContent string N 显示模式自定义内容 1：模板中只允许{name}字段，字段格式固定；
+     *                                              2：模板中只允许数字、中英文、中英文符号和“{”、“}”；
+     *                                              3：内容长度限制255个字，请自行调整
+     *                                              例：{name}，签到成功！
+     * comModType int Y 串口模式 1：开门；
+     *                          2：不输出；
+     *                          3：输出phone；
+     *                          4：输出idNo；
+     *                           ......
+     *                           100：自定义
+     * comModContent string N 串口模式自定义内容  1：模板中只允许{idNo}、{phone}字段，字段格式固定；
+     *                                          2：模板中只允许英文和英文符号；
+     *                                          3：内容长度限制255个字符，请自行调整
+     * recDisModType int N 识别距离 0：无限制（默认）
+     *                              1：0.5米以内
+     *                              2：1米以内
+     *                              3：1.5米以内
+     *                              4：2米以内
+     *                              5：3米以内
+     *                              6：4米以内
+     * previewModType int N 预览视频流开关 1：正常（默认，RGB可视，红外不可视）
+     *                                  2：预览/可视
+     *                                  3：不预览/不可视
+     * nameType int N 设备名称显示 1：显示应用名称
+     *                          2：显示设备名称
+     *                          3：显示应用名称+设备名称
+     * logoUrl string N 设备logo素材 支持类型（png、jpg、jpeg格式；mp4格式）：高160 宽214
+     * recScore int N 识别记录阈值 默认80
+     * recStrangerType int N 陌生人识别  1：不识别陌生人 2：识别陌生人
+     * orientationType int N 设备方向 1：横屏 2：竖屏
+     * Intro string N 介绍
+     * slogan string N 短语
+     * recTimeWindow int N 识别时间窗（单位min），默认1；在该时间窗内（如：设置为3分钟），人员多次识别，只上传一次识别记录
+     * recTimeWindowInSeconds int N 识别时间窗（单位s），默认0；实际设置时间为识别时间窗（分钟）及识别时间窗（秒）的累加；若设置为0分0秒，则上传记录无时间间隔限制
+     * ttsModStrangerType int Y 陌生人语音模式 1：不需要语音播报；
+     *                                      2：陌生人警报；
+     *                                      ......
+     *                                      100：自定义
+     * ttsModStrangerContent string N 1：模板中只允许数字、英文和中文；
+     *                                  2：内容长度限制255个字，请自行调整
+     *                                  例：注意陌生人
+     * wiegandType int Y 韦根信号输出 1：不输出；2：韦根26输出；3：韦根34输出
+     * wiegandContent string N  韦根信号输出内容。若不传，则识别成功后无输出内容。只允许{idNo}字段，{idNo}字段格式固定，其他内容只允许数字。
+     *                          注意：字段+数字组合后，韦根26范围为1-16777215，有效范围为5位；韦根34范围为1-4294967295，有效范围为10位。若超出范围，则输出的信号会进行转换，输出无效信号。
+     * recRank int N 设备识别等级 Uface-M5201系列设备默认1,Uface-M72XX系列设备默认3
+     * recModeFaceEnable int Y 刷脸模式 1：关； 2：开 默认
+     * recModeCardEnable int Y 刷卡模式 1：关；2：开 默认
+     * recModeCardIntf int N  刷卡模式接口 1：USB；2：TTL串口(默认)；3：232串口
+     * recModeCardHardware int N 刷卡模式硬件类型 1：IC读卡器(默认)；2：二维码读头
+     * recModeCardFaceEnable int Y  双重认证模式开关(先刷卡再刷脸) 1：关；2：开；默认
+     * recModeCardFaceIntf int N 双重认证模式接口类型  1：USB；2：TTL串口(默认)；3：232串口
+     * recModeCardFaceHardware int N  双重认证模式硬件类型  1：IC读卡器(默认)；2：二维码读头；
+     * recModeIdcardFaceEnable int Y 人证比对 1：关；默认 2：开
+     * recModeIdcardFaceIntf int N 人证比对模式接口类型  1：USB；2：TTL串口；3：232串口(默认)
+     * recModeIdcardFaceHardware int N 人证比对模式硬件类型 3：新中新(默认)；4：精伦；5：中控 6：华视
+     * recIdcardWhiteEnable int Y 人证比对白名单 1：关；默认 2：开
+     * recIdcardFaceValue int Y 人证比对识别分数 30
+     * recCardFaceValue int Y 双重认证识别分数 70
+     * relayTime int Y 继电器保持时间.默认500毫秒
+     * relayEnable int Y 继电器开关配置 1：输出；2：不输出；默认值为1
+     * strangerRelayEnable int Y 陌生人继电器开关 1：关；2：开；默认值为1
+     * strangerOutputMode int Y 陌生人输出模式 1：不输出；
+     *                                      2：开门；
+     *                                      ......
+     *                                      100：自定义；
+     * strangerOutputModeContent string N 陌生人输出模式自定义内容
+     * strangerWiegandType int Y 陌生人韦根输出类型 1：不输出；2：韦根26输出；3：韦根34输出 默认值为1
+     * strangerWiegandContent string N 陌生人韦根输出内容。只支持数字，韦根26范围为1-16777215，有效范围为5位；韦根34范围为1-4294967295，有效范围为10位。若超出范围，则输出的信号会进行转换，输出无效信号。（该字段只支持Uface-MXXX2系列设备）
+     * strangerScreenMode int Y 陌生人屏幕显示模式 1：不进行弹窗显示；
+     *                                          ......
+     *                                          100：自定义；
+     * strangerScreenModeContent string N 陌生人屏幕显示模式自定义内容
+     * ipDisplayEnable int Y IP显示 1：显示；2：隐藏；
+     * deviceKeyDisplayEnable int Y 设备序列号显示 1：显示；2：隐藏；
+     * personNumDisplayEnable int Y 人员数显示 1：显示；2：隐藏；
+     * @return $this
+     */
+    public function configureDevice(array $queryPacket = []): self
+    {
+        $this->httpMethod = self::METHOD_PUT;
+        $this->name = '修改设备配置';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->uri = "device/{$deviceKey}/setting";
+
+        if (!$ttsModType = Arr::get($queryPacket, 'ttsModType')) {
+            $this->cancel = true;
+            $this->errBox[] = '语音模式类型不得为空';
+        }
+
+        if (!$displayModType = Arr::get($queryPacket, 'displayModType')) {
+            $this->cancel = true;
+            $this->errBox[] = '显示模式类型不得为空';
+        }
+
+        if (!$comModType = Arr::get($queryPacket, 'comModType')) {
+            $this->cancel = true;
+            $this->errBox[] = '串口模式类型不得为空';
+        }
+
+        if (!$ttsModStrangerType = Arr::get($queryPacket, 'ttsModStrangerType')) {
+            $this->cancel = true;
+            $this->errBox[] = '陌生人语音模式类型不得为空';
+        }
+
+        if (!$wiegandType = Arr::get($queryPacket, 'wiegandType')) {
+            $this->cancel = true;
+            $this->errBox[] = '韦根信号输出类型不得为空';
+        }
+
+        if (!$recModeFaceEnable = Arr::get($queryPacket, 'recModeFaceEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '刷脸模式开关不得为空';
+        }
+
+        if (!$recModeCardEnable = Arr::get($queryPacket, 'recModeCardEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '刷卡模式开关不得为空';
+        }
+
+        if (!$recModeCardFaceEnable = Arr::get($queryPacket, 'recModeCardFaceEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '双重认证模式开关(先刷卡再刷脸)不得为空';
+        }
+
+        if (!$recModeIdcardFaceEnable = Arr::get($queryPacket, 'recModeIdcardFaceEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '人证比对不得为空';
+        }
+
+        if (!$recIdcardWhiteEnable = Arr::get($queryPacket, 'recIdcardWhiteEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '人证比对白名单不得为空';
+        }
+
+        if (!$recIdcardFaceValue = Arr::get($queryPacket, 'recIdcardFaceValue')) {
+            $this->cancel = true;
+            $this->errBox[] = '人证比对识别分数不得为空';
+        }
+
+        if (!$recCardFaceValue = Arr::get($queryPacket, 'recCardFaceValue')) {
+            $this->cancel = true;
+            $this->errBox[] = '双重认证识别分数不得为空';
+        }
+
+        if (!$relayTime = Arr::get($queryPacket, 'relayTime')) {
+            $this->cancel = true;
+            $this->errBox[] = '继电器保持时间不得为空';
+        }
+
+        if (!$relayEnable = Arr::get($queryPacket, 'relayEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '继电器开关配置不得为空';
+        }
+
+        if (!$strangerRelayEnable = Arr::get($queryPacket, 'strangerRelayEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '陌生人继电器开关不得为空';
+        }
+
+        if (!$strangerOutputMode = Arr::get($queryPacket, 'strangerOutputMode')) {
+            $this->cancel = true;
+            $this->errBox[] = '陌生人输出模式不得为空';
+        }
+
+        if (!$strangerWiegandType = Arr::get($queryPacket, 'strangerWiegandType')) {
+            $this->cancel = true;
+            $this->errBox[] = '陌生人韦根输出类型不得为空';
+        }
+
+        if (!$strangerScreenMode = Arr::get($queryPacket, 'strangerScreenMode')) {
+            $this->cancel = true;
+            $this->errBox[] = '陌生人屏幕显示模式不得为空';
+        }
+
+        if (!$ipDisplayEnable = Arr::get($queryPacket, 'ipDisplayEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = 'IP显示不得为空';
+        }
+
+        if (!$deviceKeyDisplayEnable = Arr::get($queryPacket, 'deviceKeyDisplayEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号显示不得为空';
+        }
+
+        if (!$personNumDisplayEnable = Arr::get($queryPacket, 'personNumDisplayEnable')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员数显示不得为空';
+        }
+
+        $ttsModContent = Arr::get($queryPacket, 'ttsModContent');
+        $displayModContent = Arr::get($queryPacket, 'displayModContent');
+        $comModContent = Arr::get($queryPacket, 'comModContent');
+        $recDisModType = intval(Arr::get($queryPacket, 'recDisModType'));
+        $previewModType = Arr::get($queryPacket, 'previewModType');
+        $nameType = Arr::get($queryPacket, 'nameType');
+        $logoUrl = Arr::get($queryPacket, 'logoUrl');
+        $recScore = Arr::get($queryPacket, 'recScore');
+        $recStrangerType = Arr::get($queryPacket, 'recStrangerType');
+        $orientationType = Arr::get($queryPacket, 'orientationType');
+        $Intro = Arr::get($queryPacket, 'Intro');
+        $slogan = Arr::get($queryPacket, 'slogan');
+        $recTimeWindow = intval(Arr::get($queryPacket, 'recTimeWindow'));
+        $recTimeWindowInSeconds = intval(Arr::get($queryPacket, 'recTimeWindowInSeconds'));
+        $recStrangerTimesThreshold = Arr::get($queryPacket, 'recStrangerTimesThreshold');
+        $ttsModStrangerContent = Arr::get($queryPacket, 'ttsModStrangerContent');
+        $wiegandContent = Arr::get($queryPacket, 'wiegandContent');
+        $recRank = Arr::get($queryPacket, 'recRank');
+        $recModeCardIntf = Arr::get($queryPacket, 'recModeCardIntf');
+        $recModeCardHardware = Arr::get($queryPacket, 'recModeCardHardware');
+        $recModeCardFaceIntf = Arr::get($queryPacket, 'recModeCardFaceIntf');
+        $recModeCardFaceHardware = Arr::get($queryPacket, 'recModeCardFaceHardware');
+        $recModeIdcardFaceIntf = Arr::get($queryPacket, 'recModeIdcardFaceIntf');
+        $recModeIdcardFaceHardware = Arr::get($queryPacket, 'recModeIdcardFaceHardware');
+        $strangerOutputModeContent = Arr::get($queryPacket, 'strangerOutputModeContent');
+        $strangerWiegandContent = Arr::get($queryPacket, 'strangerWiegandContent');
+        $strangerScreenModeContent = Arr::get($queryPacket, 'strangerScreenModeContent');
+
+        $this->packetBody(compact('ttsModType', 'ttsModContent', 'displayModType', 'displayModContent', 'comModType', 'comModContent', 'recDisModType', 'previewModType',
+            'nameType', 'logoUrl', 'recScore', 'recStrangerType', 'orientationType', 'Intro', 'slogan', 'recTimeWindow', 'recTimeWindowInSeconds', 'recStrangerTimesThreshold', 'ttsModStrangerType',
+            'ttsModStrangerContent', 'wiegandType', 'wiegandContent', 'recRank', 'recModeFaceEnable', 'recModeCardEnable', 'recModeCardIntf', 'recModeCardHardware', 'recModeCardFaceEnable', 'recModeCardFaceIntf',
+            'recModeCardFaceHardware', 'recModeIdcardFaceEnable', 'recModeIdcardFaceIntf', 'recModeIdcardFaceHardware', 'recIdcardWhiteEnable', 'recIdcardFaceValue', 'recCardFaceValue', 'relayTime', 'relayEnable',
+            'strangerRelayEnable', 'strangerOutputMode', 'strangerOutputModeContent', 'strangerWiegandType', 'strangerWiegandContent', 'strangerScreenMode', 'strangerScreenModeContent', 'ipDisplayEnable',
+            'deviceKeyDisplayEnable', 'personNumDisplayEnable'
+        ));
         return $this;
     }
 
