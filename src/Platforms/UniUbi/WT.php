@@ -372,7 +372,7 @@ class WT extends Platform
 
     /**
      * @param array $queryPacket
-     * target string N 操作目标 people:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
+     * target string N 操作目标 user:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
      * SNs string Y 设备序列号 可用,隔开
      * UIDs string Y 员工IDs 可用,隔开
      * passTimes string N 每日允许进入的时间段 例:09:00:00,11:00:00,13:00:00,15:00:00,17:00:00,19:00:00
@@ -399,6 +399,27 @@ class WT extends Platform
 
         switch (strtolower(Arr::get($queryPacket, 'target'))) {
             case 'people':
+
+                if (!$deviceKeys = Arr::get($queryPacket, 'SNs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+
+                if (!$UIDs = Arr::get($queryPacket, 'UIDs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '员工ID不得为空';
+                }
+                $UIDs = explode(',', $UIDs);
+
+                if (!$guid = current($UIDs)) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+
+                $body['guid'] = $guid;
+                $body['deviceKeys'] = $deviceKeys;
+                $this->uri = "person/{$guid}/devices";
+                $this->name = '人员设备授权';
                 break;
             case 'device':
             default:
@@ -421,7 +442,7 @@ class WT extends Platform
                 $body['personGuids'] = $personGuids;
                 $body['deviceKey'] = $deviceKey;
                 $this->uri = "device/{$deviceKey}/people";
-                $this->name = '设备授权人员接口';
+                $this->name = '设备授权人员';
                 break;
         }
         $this->packetBody($body);
@@ -442,6 +463,22 @@ class WT extends Platform
         $empty = Arr::get($queryPacket, 'empty');
         switch (strtolower(Arr::get($queryPacket, 'target'))) {
             case 'people':
+                if (!$UIDs = Arr::get($queryPacket, 'UIDs')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人员ID不得为空';
+                }
+                $UIDs = explode(',', $UIDs);
+
+                if (!$guid = current($UIDs)) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人员ID不得为空';
+                }
+
+                if (is_bool($empty)) {
+                    $deviceKey = null;
+                } else {
+
+                }
                 break;
             case 'device':
             default:
