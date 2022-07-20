@@ -1144,6 +1144,129 @@ class WT extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * faceID string Y 人脸ID
+     * SN string N 设备串号
+     * @return $this
+     */
+    public function getUserFaceState(array $queryPacket = []): self
+    {
+        if (!$guid = Arr::get($queryPacket, 'faceID')) {
+            $this->cancel = true;
+            $this->errBox[] = '照片编号不得为空';
+        }
+
+        if (!$personGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $deviceKey = Arr::get($queryPacket, 'SN');
+
+        $this->name = '人员照片状态查询';
+        $this->uri = "person/{$personGuid}/face/{$guid}/state";
+        $this->httpMethod = self::METHOD_GET;
+        $this->packetBody(compact('guid', 'personGuid', 'deviceKey'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * SN string N 设备串号
+     * @return $this
+     */
+    public function onUserFaceRegState(array $queryPacket = []): self
+    {
+        $this->name = '开启拍照注册模式';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        if (!$personGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->uri = "person/{$personGuid}/device/{$deviceKey}/registeration/state";
+        $this->packetBody(compact('deviceKey', 'personGuid'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * SN string Y 设备串号
+     * taskID string Y 任务ID
+     * @return $this
+     */
+    public function getUserFaceRegState(array $queryPacket = []): self
+    {
+        $this->httpMethod = self::METHOD_GET;
+        $this->name = '注册任务状态查询';
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        if (!$personGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        if (!$taskId = Arr::get($queryPacket, 'taskID')) {
+            $this->cancel = true;
+            $this->errBox[] = '任务编号不得为空';
+        }
+
+        $this->uri = "person/{$personGuid}/device/{$deviceKey}/registeration/state/{$taskId}";
+        $this->packetBody(compact('taskId', 'personGuid', 'deviceKey'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * SN string Y 设备串号
+     * taskID string Y 任务ID
+     * state int Y 状态
+     * @return $this
+     */
+    public function updateUserFaceRegState(array $queryPacket = []): self
+    {
+        $this->httpMethod = self::METHOD_PUT;
+        $this->name = '注册任务状态变更';
+
+        if (!$personGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        if (!$taskId = Arr::get($queryPacket, 'taskID')) {
+            $this->cancel = true;
+            $this->errBox[] = '任务编号不得为空';
+        }
+
+        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        $state = intval(Arr::get($queryPacket, 'state'));
+        if ($state < 1 || $state > 9) {
+            $this->cancel = true;
+            $this->errBox[] = '任务状态不得为空';
+        }
+        $this->uri = "person/{$personGuid}/device/{$deviceKey}/registeration/state/{$taskId}";
+        $this->packetBody(compact('taskId', 'personGuid', 'deviceKey', 'state'));
+        return $this;
+    }
+
     protected function packetBody(array $body)
     {
         $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->token]);
