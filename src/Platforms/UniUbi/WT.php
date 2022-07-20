@@ -134,6 +134,9 @@ class WT extends Platform
         'OGS_EXP-1906' => '错误的请求方式',
     ];
 
+    const TARGET_USER = 'USER';
+    const TARGET_DEVICE = 'DEVICE';
+
     public function __construct(array $config, bool $dev = false)
     {
         if ($gateway = Arr::get($config, 'gateway')) {
@@ -397,8 +400,8 @@ class WT extends Platform
 
         $body = compact('passTimes', 'effectiveTime', 'facePermission', 'cardFacePermission', 'cardPermission', 'idcardFacePermission');
 
-        switch (strtolower(Arr::get($queryPacket, 'target'))) {
-            case 'people':
+        switch (strtoupper(Arr::get($queryPacket, 'target'))) {
+            case self::TARGET_USER:
 
                 if (!$deviceKeys = Arr::get($queryPacket, 'SNs')) {
                     $this->cancel = true;
@@ -421,7 +424,7 @@ class WT extends Platform
                 $this->uri = "person/{$guid}/devices";
                 $this->name = '人员设备授权';
                 break;
-            case 'device':
+            case self::TARGET_DEVICE:
             default:
 
                 if (!$SNs = Arr::get($queryPacket, 'SNs')) {
@@ -451,7 +454,7 @@ class WT extends Platform
 
     /**
      * @param array $queryPacket
-     * target string N 操作目标 people:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
+     * target string N 操作目标 user:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
      * SNs string N 设备序列号 可用,隔开
      * UIDs string N 员工IDs 可用,隔开
      * empty bool N 清空
@@ -459,10 +462,9 @@ class WT extends Platform
      */
     public function cancelBodyFeatures(array $queryPacket = []): self
     {
-        $body = [];
         $empty = Arr::get($queryPacket, 'empty');
-        switch (strtolower(Arr::get($queryPacket, 'target'))) {
-            case 'people':
+        switch (strtoupper(Arr::get($queryPacket, 'target'))) {
+            case self::TARGET_USER:
                 if (!$UIDs = Arr::get($queryPacket, 'UIDs')) {
                     $this->cancel = true;
                     $this->errBox[] = '人员ID不得为空';
@@ -476,11 +478,25 @@ class WT extends Platform
 
                 if (is_bool($empty)) {
                     $deviceKey = null;
-                } else {
+                    $this->uri = "person/{$guid}/devices";
+                    $this->name = '人员设备销权';
+                    $this->httpMethod = self::METHOD_DELETE;
 
+                    $body = compact('deviceKey', 'guid');
+                } else {
+                    if (!$deviceKeys = Arr::get($queryPacket, 'SNs')) {
+                        $this->cancel = true;
+                        $this->errBox[] = '设备序列号不得为空';
+                    }
+
+                    $this->uri = "person/{$guid}/devices/delete";
+                    $this->name = '人员设备批量销权';
+                    $this->httpMethod = self::METHOD_POST;
+
+                    $body = compact('guid', 'deviceKeys');
                 }
                 break;
-            case 'device':
+            case self::TARGET_DEVICE:
             default:
                 if (!$SNs = Arr::get($queryPacket, 'SNs')) {
                     $this->cancel = true;
@@ -519,7 +535,9 @@ class WT extends Platform
 
     /**
      * @param array $queryPacket
-     * SN string Y 设备序列号
+     * target string N 操作目标 user:人纬度/1人下发多个设备 device:设备纬度/1台设备下发多个人员
+     * SN string N 设备序列号
+     * UID string N 人员ID
      * @return $this
      */
     public function getBodyFeatures(array $queryPacket = []): self
@@ -527,13 +545,29 @@ class WT extends Platform
         $this->name = '设备授权人员查询';
         $this->httpMethod = self::METHOD_GET;
 
-        if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
-            $this->cancel = true;
-            $this->errBox[] = '设备序列号不得为空';
+        switch (strtoupper(Arr::get($queryPacket, 'target'))) {
+            case self::TARGET_USER:
+                if (!$guid = Arr::get($queryPacket, 'UID')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '员工ID不得为空';
+                }
+
+                $this->uri = "person/{$guid}/devices";
+                $body = compact('guid');
+                break;
+            case self::TARGET_DEVICE:
+            default:
+                if (!$deviceKey = Arr::get($queryPacket, 'SN')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '设备序列号不得为空';
+                }
+
+                $this->uri = "device/{$deviceKey}/people";
+                $body = compact('deviceKey');
+                break;
         }
 
-        $this->uri = "device/{$deviceKey}/people";
-        $this->packetBody(['deviceKey' => $deviceKey]);
+        $this->packetBody($body);
         return $this;
     }
 
@@ -1019,6 +1053,94 @@ class WT extends Platform
         $idcardNo = Arr::get($queryPacket, 'idcardNo');
 
         $this->packetBody(compact('name', 'tag', 'idNo', 'phone', 'startTime', 'endTime', 'length', 'type', 'index', 'guid', 'userGuid', 'orderTypeKey', 'orderFieldKey', 'idcardNo'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * faceType string Y 人脸类型 0:base64 1:url
+     * face string Y 照片数据
+     * type byte N  1：普通 RGB 照片，默认；2：红外照片， 特定设备型号使用；若传入type字段，则内容不可为空
+     * validLevel int N 检测属性包含：人像框大小、角度、越界、光照、模糊、阴阳脸。默认为1 0：检测全部属性是否合格（RGB建议采用此标准）；1：仅检测人像大小及角度（不建议采用）；2：在等级1基础上，附加人像框越界 及 模糊度检测（红外照片质量检测建议采用此标准）
+     * @return $this
+     */
+    public function setUserFace(array $queryPacket = []): self
+    {
+        if (!$guid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        if (!$face = Arr::get($queryPacket, 'face')) {
+            $this->cancel = true;
+            $this->errBox[] = '人脸照片不得为空';
+        }
+
+        $type = Arr::get($queryPacket, 'type');
+        $validLevel = Arr::get($queryPacket, 'validLevel');
+        $body = compact('guid', 'type', 'validLevel');
+        switch (Arr::get($queryPacket, 'faceType')) {
+            case 1:
+
+                $body['imageUrl'] = $face;
+                $this->uri = "person/{$guid}/face/imageUrl/valid";
+                $this->name = '人员照片注册(url)';
+                break;
+            case 0:
+            default:
+
+                $body['img'] = $face;
+                $this->uri = "person/{$guid}/face/valid";
+                $this->name = '人员照片注册(Base64)';
+                break;
+        }
+        $this->packetBody($body);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * faceID string Y 人脸ID
+     * @return $this
+     */
+    public function rmUserFace(array $queryPacket = []): self
+    {
+        $this->name = '人员照片删除';
+        $this->httpMethod = self::METHOD_DELETE;
+
+        if (!$guid = Arr::get($queryPacket, 'faceID')) {
+            $this->cancel = true;
+            $this->errBox[] = '照片编号不得为空';
+        }
+
+        if (!$personGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->uri = "person/{$personGuid}/face/{$guid}";
+        $this->packetBody(compact('guid', 'personGuid'));
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * @return $this
+     */
+    public function getUserFace(array $queryPacket = []): self
+    {
+        if (!$guid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->httpMethod = self::METHOD_GET;
+        $this->name = '人员照片查询';
+        $this->uri = "person/{$guid}/faces";
+        $this->packetBody(compact('guid'));
         return $this;
     }
 
