@@ -173,7 +173,7 @@ class WT extends Platform
     {
         $this->uri = 'auth';
         $this->name = '接口鉴权';
-        $timestamp = intval(microtime(true));
+        $timestamp = intval(microtime(true) * 1000);
         $this->queryBody = ['appId' => $this->appId, 'appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
         return $this;
     }
@@ -1326,7 +1326,7 @@ class WT extends Platform
         } else {
             switch ($this->httpMethod) {
                 case self::METHOD_GET:
-                    $rawResponse = $httpClient->$httpMethod($uri . '?' . http_build_query($this->queryBody));
+                    $rawResponse = $httpClient->$httpMethod($uri, ['query' => $this->queryBody]);
                     break;
                 case self::METHOD_POST:
                 case self::METHOD_PUT:

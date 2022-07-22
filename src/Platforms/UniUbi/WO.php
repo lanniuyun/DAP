@@ -5,6 +5,7 @@ namespace On3\DAP\Platforms\UniUbi;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use On3\DAP\Exceptions\InvalidArgumentException;
+use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Platforms\Gateways;
 use On3\DAP\Platforms\Platform;
 use On3\DAP\Traits\DAPBaseTrait;
@@ -509,17 +510,17 @@ class WO extends Platform
         $this->appSecret = Arr::get($config, 'appSecret');
         $this->projectID = Arr::get($config, 'projectGuid');
 
-        //$this->injectLogObj();
+        $this->injectLogObj();
         $this->configValidator();
         $this->injectToken();
     }
 
     protected function auth(): self
     {
-        $this->uri = self::URI_V1 . '/auth';
+        $this->uri = self::URI_V1 . '/' . $this->projectID . '/auth';
         $this->name = '接口鉴权';
         $this->httpMethod = self::METHOD_GET;
-        $timestamp = intval(microtime(true));
+        $timestamp = intval(microtime(true)*1000);
         $this->headers = ['appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
         $this->queryBody = ['projectGuid' => $this->projectID];
         return $this;
@@ -527,7 +528,17 @@ class WO extends Platform
 
     public function injectToken(bool $refresh = false)
     {
+        $cacheKey = self::getCacheKey();
+        if (!($this->token = cache($cacheKey)) || $refresh) {
+            $response = $this->auth()->fire();
+            if ($this->token = Arr::get($response, 'data') ?: Arr::get($response, 'raw_resp.data')) {
+                cache([$cacheKey => $this->token], now()->addHours(18));
+            }
+        }
 
+        if (!$this->token) {
+            throw new InvalidArgumentException('获取接口身份令牌失败');
+        }
     }
 
     protected function configValidator()
@@ -573,7 +584,38 @@ class WO extends Platform
             $this->cleanup();
             throw new InvalidArgumentException($errMsg);
         } else {
+            switch ($this->httpMethod) {
+                case self::METHOD_GET:
+                    $rawResponse = $httpClient->$httpMethod($this->uri, ['headers' => $this->headers, 'query' => $this->queryBody]);
+                    break;
+                case self::METHOD_POST:
+                case self::METHOD_PUT:
+                default:
+                    $rawResponse = $httpClient->$httpMethod($this->uri, ['headers' => $this->headers, 'form_params' => $this->queryBody]);
+                    break;
+            }
 
+            $respRaw = $rawResponse->getBody()->getContents();
+            $respArr = @json_decode($respRaw, true) ?: [];
+            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $this->uri, 'headers' => $this->headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+
+            $this->cleanup();
+
+            if ($rawResponse->getStatusCode() !== 200) {
+                throw new RequestFailedException('接口请求失败:' . $apiName);
+            }
+
+            switch ($this->responseFormat) {
+                case self::RESP_FMT_JSON:
+                    $responsePacket = $respArr;
+                    $this->formatResp($responsePacket);
+                    return $responsePacket;
+                case self::RESP_FMT_BODY:
+                    return $respRaw;
+                case self::RESP_FMT_RAW:
+                default:
+                    return $rawResponse;
+            }
         }
     }
 }
