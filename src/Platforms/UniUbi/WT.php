@@ -169,7 +169,7 @@ class WT extends Platform
         }
     }
 
-    public function auth(): self
+    protected function auth(): self
     {
         $this->uri = 'auth';
         $this->name = '接口鉴权';

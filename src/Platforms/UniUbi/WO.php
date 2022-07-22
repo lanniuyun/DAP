@@ -2,6 +2,10 @@
 
 namespace On3\DAP\Platforms\UniUbi;
 
+use GuzzleHttp\Client;
+use Illuminate\Support\Arr;
+use On3\DAP\Exceptions\InvalidArgumentException;
+use On3\DAP\Platforms\Gateways;
 use On3\DAP\Platforms\Platform;
 use On3\DAP\Traits\DAPBaseTrait;
 
@@ -484,14 +488,61 @@ class WO extends Platform
 
     use DAPBaseTrait;
 
+    protected $projectID;
+    protected $appKey;
+    protected $appSecret;
+    protected $token;
+    protected $headers = [];
+
+    const URI_V1 = 'v1';
+    const URI_V2 = 'v2';
+
     public function __construct(array $config, bool $dev = false)
+    {
+        if ($gateway = Arr::get($config, 'gateway')) {
+            $this->gateway = $gateway;
+        } else {
+            $this->gateway = $dev ? Gateways::WO_DEV : Gateways::WO;
+        }
+
+        $this->appKey = Arr::get($config, 'appKey');
+        $this->appSecret = Arr::get($config, 'appSecret');
+        $this->projectID = Arr::get($config, 'projectGuid');
+
+        //$this->injectLogObj();
+        $this->configValidator();
+        $this->injectToken();
+    }
+
+    protected function auth(): self
+    {
+        $this->uri = self::URI_V1 . '/auth';
+        $this->name = '接口鉴权';
+        $this->httpMethod = self::METHOD_GET;
+        $timestamp = intval(microtime(true));
+        $this->headers = ['appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
+        $this->queryBody = ['projectGuid' => $this->projectID];
+        return $this;
+    }
+
+    public function injectToken(bool $refresh = false)
     {
 
     }
 
     protected function configValidator()
     {
-        // TODO: Implement configValidator() method.
+        if (!$this->projectID) {
+            throw new InvalidArgumentException('项目ID不得为空');
+        }
+
+        if (!$this->appKey) {
+            throw new InvalidArgumentException('应用key不得为空');
+        }
+
+        if (!$this->appSecret) {
+            throw new InvalidArgumentException('应用密钥不得为空');
+        }
     }
 
     protected function generateSignature()
@@ -506,6 +557,23 @@ class WO extends Platform
 
     public function fire()
     {
-        // TODO: Implement fire() method.
+        $apiName = $this->name;
+        $httpMethod = $this->httpMethod;
+        $gateway = trim($this->gateway, '/') . '/';
+
+        $httpClient = new Client(['base_uri' => $gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
+        if ($this->cancel) {
+            $errBox = $this->errBox;
+            if (is_array($errBox)) {
+                $errMsg = implode(',', $errBox);
+            } else {
+                $errMsg = '未知错误';
+            }
+            $this->cleanup();
+            throw new InvalidArgumentException($errMsg);
+        } else {
+
+        }
     }
 }

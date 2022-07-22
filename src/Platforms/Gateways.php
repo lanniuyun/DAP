@@ -23,4 +23,7 @@ class Gateways
 
     const WT = 'http://gs-api.uface.uni-ubi.com/v1/';
     const WT_DEV = 'http://gs-api.uface.uni-ubi.com/v1/';
+
+    const WO = 'http://wo-api.uni-ubi.com/';
+    const WO_DEV = 'http://wo-api.uni-ubi.com/';
 }
