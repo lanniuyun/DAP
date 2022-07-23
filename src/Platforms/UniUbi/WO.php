@@ -495,8 +495,11 @@ class WO extends Platform
     protected $token;
     protected $headers = [];
 
-    const URI_V1 = 'v1';
-    const URI_V2 = 'v2';
+    protected $apiVer = self::API_V2;
+
+    const API_V1 = 'v1/';
+    const API_V2 = 'v2/';
+    const SOURCE_UFACE = '000000';
 
     public function __construct(array $config, bool $dev = false)
     {
@@ -513,17 +516,6 @@ class WO extends Platform
         $this->injectLogObj();
         $this->configValidator();
         $this->injectToken();
-    }
-
-    protected function auth(): self
-    {
-        $this->uri = self::URI_V1 . '/' . $this->projectID . '/auth';
-        $this->name = '接口鉴权';
-        $this->httpMethod = self::METHOD_GET;
-        $timestamp = intval(microtime(true)*1000);
-        $this->headers = ['appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
-        $this->queryBody = ['projectGuid' => $this->projectID];
-        return $this;
     }
 
     public function injectToken(bool $refresh = false)
@@ -563,7 +555,78 @@ class WO extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        if (Arr::get($response, 'success') === true) {
+            $resPacket = ['code' => 0, 'msg' => 'SUCCESS'];
+        } else {
+            $msg = (Arr::get(self::CODES, Arr::get($response, 'code') ?: '') ?: Arr::get($response, 'msg')) ?: '请求发生未知异常';
+            $resPacket = ['code' => 500, 'msg' => $msg];
+        }
+        $resPacket['data'] = Arr::get($response, 'data') ?: [];
+        $resPacket['raw_resp'] = $response;
+        $response = $resPacket;
+    }
+
+    protected function cleanup()
+    {
+        parent::cleanup();
+
+        $this->apiVer = self::API_V2;
+        $this->headers = [];
+    }
+
+    protected function auth(): self
+    {
+        $this->uri = $this->projectID . '/auth';
+        $this->name = '接口鉴权';
+        $this->apiVer = self::API_V1;
+        $this->httpMethod = self::METHOD_GET;
+        $timestamp = intval(microtime(true) * 1000);
+        $this->headers = ['appKey' => $this->appKey, 'timestamp' => $timestamp, 'sign' => strtolower(md5($this->appKey . $timestamp . $this->appSecret))];
+        $this->queryBody = ['projectGuid' => $this->projectID];
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * name string N 设备名称
+     * tag string N 设备标签 tag传入后，服务器会返回加密形式后的tag，可用于设备分类
+     * act string N 操作 1:建立 2:更新
+     * sceneID string N 场景ID
+     * addition mixed N 扩展字段
+     * bindDefaultScene bool N 是否绑定默认场景（场景 Guid 为空此字段生效）
+     * @return $this
+     */
+    public function bindDevice(array $queryPacket = []): self
+    {
+        if ((Arr::get($queryPacket, 'act') ?: 1) === 1) {
+            $this->name = '设备添加';
+            $this->uri = 'device/create';
+        } else {
+            $this->name = '设备更新';
+            $this->uri = 'device/update';
+        }
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        if (!$name = Arr::get($queryPacket, 'name')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备名称不得为空';
+        }
+
+        $tag = Arr::get($queryPacket, 'tag');
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        $sceneGuid = Arr::get($queryPacket, 'sceneID');
+        $bindDefaultScene = boolval(Arr::get($queryPacket, 'bindDefaultScene'));
+        $addition = Arr::get($queryPacket, 'addition');
+        if (is_array($addition)) {
+            $addition = @json_encode($addition);
+        }
+        $this->queryBody = compact('deviceNo', 'name', 'tag', 'sceneGuid', 'bindDefaultScene', 'addition', 'source');
+        return $this;
     }
 
     public function fire()
@@ -571,6 +634,8 @@ class WO extends Platform
         $apiName = $this->name;
         $httpMethod = $this->httpMethod;
         $gateway = trim($this->gateway, '/') . '/';
+        $uri = $this->apiVer . $this->uri;
+        $headers = $this->headers ?: ['token' => $this->token, 'projectGuid' => $this->projectID];
 
         $httpClient = new Client(['base_uri' => $gateway, 'timeout' => $this->timeout, 'verify' => false]);
 
@@ -586,18 +651,18 @@ class WO extends Platform
         } else {
             switch ($this->httpMethod) {
                 case self::METHOD_GET:
-                    $rawResponse = $httpClient->$httpMethod($this->uri, ['headers' => $this->headers, 'query' => $this->queryBody]);
+                    $rawResponse = $httpClient->$httpMethod($uri, ['headers' => $headers, 'query' => $this->queryBody]);
                     break;
                 case self::METHOD_POST:
                 case self::METHOD_PUT:
                 default:
-                    $rawResponse = $httpClient->$httpMethod($this->uri, ['headers' => $this->headers, 'form_params' => $this->queryBody]);
+                    $rawResponse = $httpClient->$httpMethod($uri, ['headers' => $headers, 'json' => $this->queryBody]);
                     break;
             }
 
             $respRaw = $rawResponse->getBody()->getContents();
             $respArr = @json_decode($respRaw, true) ?: [];
-            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $this->uri, 'headers' => $this->headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'headers' => $headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
 
             $this->cleanup();
 
