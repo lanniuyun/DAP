@@ -1136,7 +1136,78 @@ class WO extends Platform
         $endTime = Arr::get($queryPacket, 'endTime');
         $name = Arr::get($queryPacket, 'name');
 
-        $this->queryBody = compact('index','length','tag','admitGuids','faceNum','startTime','endTime','name');
+        $this->queryBody = compact('index', 'length', 'tag', 'admitGuids', 'faceNum', 'startTime', 'endTime', 'name');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * base64 string N
+     * UID string Y 人员ID
+     * url string N
+     * tag string N 标签
+     * @return $this
+     */
+    public function setUserFace(array $queryPacket = []): self
+    {
+        if (!$admitGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $base64 = Arr::get($queryPacket, 'base64');
+        $url = Arr::get($queryPacket, 'url');
+
+        if (!$base64 && !$url) {
+            $this->cancel = true;
+            $this->errBox[] = '人脸不得为空';
+        }
+
+        $faceTag = Arr::get($queryPacket, 'tag');
+        $this->queryBody = compact('base64', 'url', 'faceTag', 'admitGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * faceID string Y 人脸ID
+     * @return $this
+     */
+    public function rmUserFace(array $queryPacket = []): self
+    {
+        $this->name = '人像删除';
+        $this->uri = "face/delete";
+
+        if (!$faceGuid = Arr::get($queryPacket, 'faceID')) {
+            $this->cancel = true;
+            $this->errBox[] = '照片编号不得为空';
+        }
+
+        if (!$admitGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->queryBody = compact('faceGuid', 'admitGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * faceID string Y 人像ID
+     * @return $this
+     */
+    public function getUserFace(array $queryPacket = []): self
+    {
+        if (!$faceGuid = Arr::get($queryPacket, 'faceID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人像guid不得为空';
+        }
+
+        $this->name = '人员照片信息查询';
+        $this->uri = "face/detail";
+        $this->queryBody = compact('faceGuid');
         return $this;
     }
 
