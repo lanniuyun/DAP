@@ -1036,6 +1036,110 @@ class WO extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * name string Y 姓名
+     * UID string N 人员ID
+     * cardNo string N 卡号
+     * phone string N 手机号
+     * tag string N 备注
+     * idCardNo string N 身份证卡号
+     * password string N 密码
+     * addition string N 扩展
+     * @return $this
+     */
+    public function setUser(array $queryPacket = []): self
+    {
+        if ($admitGuid = Arr::get($queryPacket, 'UID')) {
+            $this->uri = "admit/update";
+            $this->name = '识别主体更新';
+        } else {
+            $this->uri = 'admit/create';
+            $this->name = '识别主体创建';
+        }
+
+        if (!$name = Arr::get($queryPacket, 'name')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员姓名不得为空';
+        }
+        $phone = Arr::get($queryPacket, 'phone');
+        $tag = Arr::get($queryPacket, 'tag');
+        $cardNo = Arr::get($queryPacket, 'cardNo');
+        $idCardNo = Arr::get($queryPacket, 'idCardNo');
+        $password = Arr::get($queryPacket, 'password');
+        $addition = Arr::get($queryPacket, 'addition');
+
+        $this->queryBody = compact('admitGuid', 'phone', 'tag', 'cardNo', 'idCardNo', 'password', 'addition', 'name');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UIDs string Y 人员编号
+     * @return $this
+     */
+    public function rmUser(array $queryPacket = []): self
+    {
+        $this->name = '识别主体删除';
+        $this->uri = "admit/delete";
+
+        if (!$admitGuids = Arr::get($queryPacket, 'UIDs')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->queryBody = compact('admitGuids');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string Y 人员编号
+     * @return $this
+     */
+    public function getUser(array $queryPacket = []): self
+    {
+        $this->name = '查询识别主体详情';
+        $this->uri = "admit/detail";
+
+        if (!$admitGuid = Arr::get($queryPacket, 'UID')) {
+            $this->cancel = true;
+            $this->errBox[] = '人员编号不得为空';
+        }
+
+        $this->queryBody = compact('admitGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * index int Y 页码
+     * length int Y 条数
+     * UIDs string N 人员IDs
+     * faceNum int N -1:全要 0:无注册照 1:有注册照
+     * startTime string N 创建开始时间(UTC 时间/毫秒值)，如 2018-08-08T08:18:28+0000 或 1542793088000
+     * endTime string N 创建结束时间(UTC 时间/毫秒值)，如 2018-08-08T08:18:28+0000 或 1542793088000
+     * name string N 识别主体名
+     * @return $this
+     */
+    public function getUserList(array $queryPacket = []): self
+    {
+        $this->uri = 'admit/page';
+        $this->name = '识别主体列表';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $tag = Arr::get($queryPacket, 'tag');
+        $admitGuids = Arr::get($queryPacket, 'UIDs');
+        $faceNum = Arr::get($queryPacket, 'faceNum');
+        $startTime = Arr::get($queryPacket, 'startTime');
+        $endTime = Arr::get($queryPacket, 'endTime');
+        $name = Arr::get($queryPacket, 'name');
+
+        $this->queryBody = compact('index','length','tag','admitGuids','faceNum','startTime','endTime','name');
+        return $this;
+    }
+
     public function fire()
     {
         $apiName = $this->name;

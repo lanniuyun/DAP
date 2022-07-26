@@ -1032,7 +1032,7 @@ class WT extends Platform
      * idcardNo string N 身份证号
      * @return $this
      */
-    public function searchUser(array $queryPacket = []): self
+    public function getUserList(array $queryPacket = []): self
     {
         $this->uri = 'people/search';
         $this->name = '人员搜索';
