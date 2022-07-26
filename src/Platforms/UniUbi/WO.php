@@ -954,6 +954,88 @@ class WO extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * mode int Y 设备模式类型 1：拍照注册；2：IC卡/身份证卡号注册
+     * type int Y 0 开启 1 关闭
+     * taskID string N 任务ID
+     * timeOut int N 超时时间(单位秒)（默认 60s，安卓设备不支持设置超时时间）
+     * callBackUrl string N 回调地址(注册成功会进行通知，若不填需要主动来查询)
+     * UID string N 识别主体的 guid (开启注册时候必传)
+     * @return $this
+     */
+    public function setDeviceRegMode(array $queryPacket = []): self
+    {
+        $this->uri = 'device/registerMode';
+        $this->name = '设备注册任务';
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $registerMode = intval(Arr::get($queryPacket, 'mode'));
+        $taskGuid = Arr::get($queryPacket, 'taskID');
+        $timeOut = Arr::get($queryPacket, 'timeOut');
+        $callBackUrl = Arr::get($queryPacket, 'callBackUrl');
+        $admitGuid = Arr::get($queryPacket, 'UID');
+        if ($activeType = intval(Arr::get($queryPacket, 'type'))) {
+            if (!$admitGuid) {
+                $this->cancel = true;
+                $this->errBox[] = '识别主体的guid(开启注册时候必传)';
+            }
+        } else {
+            if (!$taskGuid) {
+                $this->cancel = true;
+                $this->errBox[] = '任务guid(关闭注册任务必传)';
+            }
+        }
+
+        $this->queryBody = compact('deviceNo', 'registerMode', 'taskGuid', 'timeOut', 'callBackUrl', 'activeType');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * taskID string N 任务ID
+     * @return $this
+     */
+    public function getDeviceRegMode(array $queryPacket = []): self
+    {
+        $this->uri = 'device/registerMode/query';
+        $this->name = '设备注册任务查询';
+
+        if (!$taskGuid = Arr::get($queryPacket, 'taskID')) {
+            $this->cancel = true;
+            $this->errBox[] = '任务guid不可为空';
+        }
+
+        $this->queryBody = compact('taskGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * type int Y 1 开门
+     * @return $this
+     */
+    public function controlDevice(array $queryPacket = []): self
+    {
+        $this->uri = 'device/interactive';
+        $this->name = '设备交互模式';
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+        $type = intval(Arr::get($queryPacket, 'type'));
+
+        $this->queryBody = compact('type', 'deviceNo');
+        return $this;
+    }
+
     public function fire()
     {
         $apiName = $this->name;

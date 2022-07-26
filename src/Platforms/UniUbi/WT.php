@@ -884,11 +884,11 @@ class WT extends Platform
     /**
      * @param array $queryPacket
      * SN string Y 设备序列号
-     * type int Y 设备模式类型 1：拍照注册；2：IC卡/身份证卡号注册
+     * mode int Y 设备模式类型 1：拍照注册；2：IC卡/身份证卡号注册
      * UID string N 员工ID
      * @return $this
      */
-    public function settingRegStateDevice(array $queryPacket = []): self
+    public function setDeviceRegMode(array $queryPacket = []): self
     {
         $this->name = '开启设备注册模式';
 
