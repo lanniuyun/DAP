@@ -339,7 +339,7 @@ class WT extends Platform
      * do string Y  enable:启用 disable:禁用 reset:重置 recovery:校准
      * @return $this
      */
-    public function settingDevice(array $queryPacket = []): self
+    public function commandDevice(array $queryPacket = []): self
     {
 
         switch (strtolower(Arr::get($queryPacket, 'do'))) {

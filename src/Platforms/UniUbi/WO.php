@@ -629,6 +629,331 @@ class WO extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * source string N 来源
+     * @return $this
+     */
+    public function unBindDevice(array $queryPacket = []): self
+    {
+        $this->uri = 'device/delete';
+        $this->name = '设备删除';
+
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->queryBody = compact('deviceNo', 'source');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * source string N 来源
+     * @return $this
+     */
+    public function deviceInfo(array $queryPacket = []): self
+    {
+        $this->name = '设备详情';
+        $this->uri = 'device/detail';
+
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $this->queryBody = compact('deviceNo', 'source');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string N 设备序列号
+     * source string N 来源
+     * index int N 页码
+     * length int N 每页个数
+     * name string N 设备名称
+     * tag string N 设备标签
+     * versionNo string N 设备应用版本号
+     * state string N 设备状态,1:未绑定 2:已绑定 3:已禁用
+     * startTime string N 查询开始时间
+     * endTime string N 查询结束时间
+     * @return $this
+     */
+    public function deviceList(array $queryPacket = []): self
+    {
+        $this->uri = 'device/page';
+        $this->name = '设备列表';
+        $deviceNo = Arr::get($queryPacket, 'SN');
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        $name = Arr::get($queryPacket, 'name');
+        $tag = Arr::get($queryPacket, 'tag');
+        $versionNo = Arr::get($queryPacket, 'versionNo');
+        $state = Arr::get($queryPacket, 'state');
+        $startTime = Arr::get($queryPacket, 'startTime');
+        $endTime = Arr::get($queryPacket, 'endTime');
+        $this->queryBody = compact('deviceNo', 'index', 'length', 'source', 'name', 'tag', 'versionNo', 'state', 'startTime', 'endTime');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * source string N 设备来源
+     * @return $this
+     */
+    public function getDeviceConf(array $queryPacket = []): self
+    {
+        $this->uri = 'device/setting/query';
+        $this->name = '设备配置查询';
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        if ($keys = Arr::get($queryPacket, 'keys')) {
+            if (is_array($keys)) {
+                $keys = implode(',', $keys);
+            }
+        }
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        $this->queryBody = compact('keys', 'deviceNo', 'source');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * source string N 设备来源
+     * configs array Y 配置集合/多维数组
+     * 示例 {
+     * "source": "",
+     * "deviceNo": "",
+     * "deviceConfigs": [{
+     *          "key": "antiTamper",
+     *          "value": "1",
+     *          "explain": null
+     *          }]
+     * }
+     * bigScrUrl    固定显示参数.大屏背景图片 默认使用设备自带图片(jpg,jpeg,png,mp4)
+     * cardEnable    刷卡识别参数.刷卡模式开关 1:打开(默认) 2:关闭
+     * cardFaceEnable    卡&人像双重认证.卡&人像双重认证开关 1:打开 2:关闭(默认)
+     * cardFaceHardware    卡&人像双重认证.外接硬件类型 1:IC 读卡器(默认) 2:新中新 3:精伦 4:中控
+     * cardFaceIntf    卡&人像双重认证参数.卡号传输接口 1:USB 2:TTL 串口(MXXX2、MXXX6 系列默认) 3:232 串口（MXXX1 系列默认） 4:I²C（MXXX3 系列默认）
+     * cardFaceScore    卡&人像双重认证.人像识别阈值 60(默认)
+     * cardHardware    刷卡识别参数.外接硬件类型 1:IC 读卡器(默认) 2:新中新 3:精伦 4:中控
+     * cardIntf    刷卡识别参数.卡号传输接口 1:USB 2:TTL 串口(MXXX2、MXXX6 系列默认) 3:232 串口（MXXX1 系列默认） 4:I²C（MXXX3 系列默认） USB（或 TTL 或 232 或 I²C）接口只能被一种识别模式使用，若>1 种模式使用 USB（或 TTL 或 232 或 I²C）则报错。
+     * comRecDistModeType    识别通用参数.识别距离 *1：无限制 *2：0.5 米以内 *3：1 米以内（Uface C 默认） *4：1.5 米以内 *5：2 米以内 *6：3 米以内 *7：4 米以内 若识别等级选择 2 活体，则 1、4、5、6、7 不可选；若识别等级选择 1 非活体，则 1-7 均可选。
+     * comRecRank    识别通用参数.识别等级 1:非活体 2:活体(默认)
+     * comRecTimeWindow    识别通用参数.时间窗 60 秒(默认)
+     * comRelayTime    识别通用参数.继电器控制时间 500ms(默认) 继电器控制开门到关门之间的时间间隔，默认 500ms。请输入 100-25500 之间的整数，向下取整百。如：输入 101-199 之间的整数，实际生效的是 100ms。
+     * deviceKey    设备序列号
+     * faceDetectionType    刷脸识别参数.人像检测类型 1:多人识别(默认) 2:单人识别
+     * faceEnable    刷脸识别参数.刷脸模式开关 1:打开(默认) 2:关闭
+     * timeZone    时区
+     * repeatRegEnable    是否连续识别 1: 关（默认） 2: 开
+     * languageType    中英文语言类型 zh_CN: 简体中文 en: 英文
+     * timestamp    设备时间（时间戳）
+     * faceScore    刷脸识别参数.人像识别阈值 80(默认) 实际允许 0-100 之间的所有整数。提示：请输入 50-100 之间的整数。分数越高，识别准确率越高，但识别速度会变慢。
+     * idCardFaceEnable    人证比对参数.人证比对开关 1:打开 2:关闭(默认)
+     * idCardFaceHardware    人证比对参数.外接硬件类型 1:IC 读卡器 2:新中新(默认) 3:精伦 4:中控
+     * idCardFaceIntf    人证比对参数.卡号传输接口 1:USB 2:TTL 串口 3:232 串口(默认) 4:I²C
+     * idCardFaceScore    人证比对参数.人像识别阈值 50(默认)
+     * idCardVerificationEnable    人证比对参数.身份证校验（白名单）开关：1：关；2：开，默认是关闭
+     * isShowDeviceKey    固定显示参数.是否显示设备序列号 true(默认) false
+     * isShowIp    固定显示参数.是否显示 IP true(默认) false
+     * isShowPersonCount    固定显示参数.是否显示人数 true(默认) false
+     * recFailComModeContent    识别失败参数.串口输出自定义内容
+     * recFailComModeType    识别失败参数.串口输出类型 1:开门 2:不输出(默认) 100:自定义
+     * recFailDisplayTextContent    识别失败参数.屏幕显示文字自定义内容 内容只允许数字、中英文和中英文符号，长度限制 255 个字符。如：注意陌生人！
+     * recFailDisplayTextType    识别失败参数.屏幕显示文字类型 1:识别失败(默认) 100:自定义
+     * recFailEnable    识别失败参数.识别失败开关 1:打开(默认) 2:关闭
+     * recFailRelayType    识别失败参数.继电器输出类型 1:输出 2:不输出(默认)
+     * recFailTimesThreshold    识别失败参数.判定次数 3(默认) 打开识别失败开关后，该选项有效；连续比对 N 次都未达到分数阈值，则判定为识别失败，默认 3 次；传入值请选择 1-20 之间的整数，1 表示快速判定但精确率最低，随着数值增加，判定时间增加，精确度提高
+     * recFailTtsModeContent    识别失败参数.语音播报自定义内容 内容只允许数字、英文和汉字，长度限制 255 个字符。如：注意陌生人
+     * recFailTtsModeType    识别失败参数.语音播类型 1:识别失败(默认) 2:不播放 100:自定义
+     * recFailWiegandContent    识别失败参数.韦根输出自定义内容
+     * recFailWiegandType    识别失败参数.韦根输出类型 1:不输出(默认) 2:韦根 26 3:韦根 34
+     * recNoPerComModeContent    权限不足参数.串口输出自定义内容
+     * recNoPerComModeType    权限不足参数.串口输出类型 1:开门 2:不输出(默认) 3:输出 phone 4:输出 cardNo 100:自定义
+     * recNoPerDisplayText1Content    权限不足参数.屏幕显示文字 1 自定义内容
+     * recNoPerDisplayText1Type    权限不足参数.屏幕显示文字 1 类型 1:姓名(默认) 100:自定义
+     * recNoPerDisplayText2Content    权限不足参数.屏幕显示文字 2 自定义内容
+     * recNoPerDisplayText2Type    权限不足参数.屏幕显示文字 2 类型 1:权限不足(默认) 100:自定义
+     * recNoPerRelayType    权限不足参数.继电器输出类型 1:输出 2:不输出(默认)
+     * recNoPerTtsModeContent    权限不足参数.语音播报自定义内容 允许{name}、{tag}。字段格式固定，其他内容只允许数字、英文和汉字，长度限制 255 个字符。如：{name}无权通行
+     * recNoPerTtsModeType    权限不足参数.语音播类型 1:播报姓名权限不足(默认) 2:不播放 100:自定义
+     * recNoPerWiegandContent    权限不足参数.韦根输出自定义内容
+     * recNoPerWiegandType    权限不足参数.韦根输出类型 1:不输出(默认) 2:韦根 26 3:韦根 34
+     * recSucComModeContent    识别成功参数.串口输出自定义内容
+     * recSucComModeType    识别成功参数.串口输出类型 1:开门(默认) 2:不输出 3:输出 phone 4:输出 cardNo 100:自定义
+     * recSucDisplayText1Content    识别成功参数.屏幕显示文字 1 自定义内容
+     * recSucDisplayText1Type    识别成功参数.屏幕显示文字 1 类型 1:姓名(默认) 100:自定义
+     * recSucDisplayText2Content    识别成功参数.屏幕显示文字 2 自定义内容
+     * recSucDisplayText2Type    识别成功参数.屏幕显示文字 2 类型 1:识别成功(默认) 100:自定义
+     * recSucRelayType    识别成功参数.继电器输出类型 1:输出(默认) 2:不输出
+     * recSucTtsModeContent    识别成功参数.语音播报自定义内容 允许{name}、{tag}。字段格式固定，其他内容只允许数字、英文和汉字，长度限制 255 个字符。如：{name}欢迎光临
+     * recSucTtsModeType    识别成功参数.语音播类型 1:播报名字(默认) 2:不播放 100:自定义
+     * recSucWiegandContent    识别成功参数.韦根输出自定义内容 允许{phone}、{cardNo}。字段格式固定且只能为数字或字母，其他内容只允许数字、英文和英文符号，长度限制 255 个字符。串口支持输出韦根信号，设备需要外接串口 → 韦根信号转换小板，小板由本公司定制。自定义内容传入格式：韦根 26：#26WG{cardNo}#，韦根 34：#34WG{cardNo}#注意：{cardNo}+数字组合后，韦根 26 范围为 1-65535（待定），有效范围为 5 位；韦根 34 范围为 1-4294967295（待定），有效范围为 10 位。若超出范围，则输出的信号会进行转换，输出无效信号。
+     * recSucWiegandType    识别成功参数.韦根输出类型 1:不输出(默认) 2:韦根 26 3:韦根 34
+     * scrDisableUrl    固定显示参数.禁用界面图片 默认使用设备自带图片(jpg,jpeg,png,mp4)
+     * scrDisplayText1Content    固定显示参数.显示文字内容 1 自定义内容 长度限制 255
+     * scrDisplayText1Type    固定显示参数.显示文字内容 1 类型 1:不显示(默认) 2:应用名称 100:自定义
+     * scrDisplayText2Content    固定显示参数.显示文字内容 2 自定义内容 长度限制 255
+     * scrDisplayText2Type    固定显示参数.显示文字内容 2 类型 1:不显示 2:设备名称(默认) 100:自定义
+     * scrImage1Url    固定显示参数.显示图片 1 默认使用设备自带图片(jpg,jpeg,png,mp4)
+     * scrImage2Url    固定显示参数.显示图片 2 默认无图片(jpg,jpeg,png,mp4)
+     * scrOrntType    固定显示参数.屏幕方向 1:横屏(默认) 2:竖屏
+     * uniquenessRegImage    注册照全局唯一，1 开，2 关
+     * isTemperatureOpen    测温开关，1 开，2 关
+     * tempUnit    测温单位，1 摄氏度，2 华氏度
+     * isTempVoiceOpen    是否异常语音播放，1 开，2 关
+     * errorTemperature    异常温度判断值
+     * temperatureMeasurePlace    测温位置，1 额头，2 手腕
+     * temperatureMeasureMin    有效温度最低值
+     * temperatureMeasureMax    有效温度最高值
+     * temperatureCompensation    低温补偿开关.1 开，2 关
+     * tempMapSwitch    高温补偿开关，1 开，2 关
+     * relaySwitchOnTempFail    温度继电器输出开关，1 开，2 关
+     * wgSwitchOnTempFail    温度韦根输出开关，1 开，2 关
+     * serialSwitchOnTempFail    温度异常串口输出开关，1 开，2 关
+     * quickTemperatureMode    快速测温模式开关，1 开，2 关
+     * isMaskOpen    口罩模式开关：1 开，2 关
+     * isMaskVoiceOpen    是口罩检测异常语音播报：1 开，2 关
+     * isMaskForceOpen    是否强制戴口罩：1 开，2 关
+     * recModeQREnable    二维码开关 1 关（默认） 2 开
+     * http_QRCode_url    二维码回调地址
+     * recModePasswordEnable    密码识别开关 1 关，2 开（默认）
+     * #
+     * @return $this
+     */
+    public function configureDeviceConf(array $queryPacket = []): self
+    {
+        $this->uri = 'device/setting/update';
+        $this->name = '设备配置';
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        if (!$deviceConfigs = Arr::get($queryPacket, 'configs')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备配置集合不得为空';
+        }
+
+        if (!is_array($deviceConfigs)) {
+            $this->cancel = true;
+            $this->errBox[] = '设备配置集合参数类型错误';
+        }
+
+        $this->queryBody = compact('deviceConfigs', 'deviceNo', 'source');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * index int N 页码
+     * length int N 每页个数
+     * type int N 版本类型 1:ota 2:app
+     * hardwareVersion int N 硬件类型 1:1 代 2:2 代 3:3 代 6:C 10:2C 50:5C 51:5K 52:DV300 平板 57:DV300 模组 58:CV500 模组 59:无感系列 60:6C 61:6CC
+     * source string N 设备来源
+     * @return $this
+     */
+    public function getDevicePackageList(array $queryPacket = []): self
+    {
+        $this->uri = 'device/devicePackage';
+        $this->name = '获取固件';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        $hardwareVersion = Arr::get($queryPacket, 'hardwareVersion');
+        $this->queryBody = compact('index', 'length', 'source', 'hardwareVersion');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SNs string Y 设备字串集合 可用,隔开
+     * source string N 设备来源
+     * @return $this
+     */
+    public function getDeviceStates(array $queryPacket = []): self
+    {
+        $this->uri = 'device/onlineState';
+        $this->name = '设备在线状态';
+
+        if (!$deviceNos = Arr::get($queryPacket, 'SNs')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        $this->queryBody = compact('deviceNos', 'source');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备字串
+     * source string N 设备来源
+     * do int Y 1 重启 2：重置 3：启用 4 禁用
+     * @return $this
+     */
+    public function commandDevice(array $queryPacket = []): self
+    {
+        $this->uri = 'device/command';
+        $this->name = '设备操作指令下发';
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+        if (!$operateType = intval(Arr::get($queryPacket, 'do'))) {
+            $this->cancel = true;
+            $this->errBox[] = '设备操作不得为空';
+        }
+
+        $this->queryBody = compact('operateType', 'source', 'deviceNo');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SNs string Y 设备字串集合 可用,隔开
+     * packageID string Y 固件ID
+     * @return $this
+     */
+    public function upgradeDeviceSys(array $queryPacket = []): self
+    {
+        $this->uri = 'device/upgrade';
+        $this->name = '设备升级';
+
+        if (!$deviceNos = Arr::get($queryPacket, 'SNs')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+        $source = Arr::get($queryPacket, 'source') ?: self::SOURCE_UFACE;
+
+        if (!$packageGuid = Arr::get($queryPacket, 'packageID')) {
+            $this->cancel = true;
+            $this->errBox[] = '固件ID';
+        }
+
+        $this->queryBody = compact('source', 'deviceNos', 'packageGuid');
+        return $this;
+    }
+
     public function fire()
     {
         $apiName = $this->name;
