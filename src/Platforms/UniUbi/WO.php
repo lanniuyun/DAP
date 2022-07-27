@@ -520,7 +520,7 @@ class WO extends Platform
 
     public function injectToken(bool $refresh = false)
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->appKey);
         if (!($this->token = cache($cacheKey)) || $refresh) {
             $response = $this->auth()->fire();
             if ($this->token = Arr::get($response, 'data') ?: Arr::get($response, 'raw_resp.data')) {
@@ -1207,7 +1207,314 @@ class WO extends Platform
 
         $this->name = '人员照片信息查询';
         $this->uri = "face/detail";
+
         $this->queryBody = compact('faceGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * name string Y 名称
+     * sceneID string N 场景ID
+     * ability int N 场景能力（小库与标签库互斥） 0：正常库， 1：开启小库， 2：开启标签库， 4：开启当日库， 8：开启大库 （二进制排列组合，小库与标签库互斥）， eg 小库，1+（4，8）组合，小库+当日，小库+当日+大库，小库+大库 ，
+     *                                          eg 标签，2+（4，8）组合，标签+当日，标签+当日+大库，标签+大库 ， 小库：特征值，临时库，正常库，当日库，大库， 标签：特征值，标签，当日库，大库， 小库：特征值：无需维护，搜索根据分值自动入临时库， 标签：授权特征，同步当日库
+     * duration int N 场景小库最大时长 单位:秒
+     * @return $this
+     */
+    public function setScene(array $queryPacket = []): self
+    {
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->name = '创建场景';
+            $this->uri = 'scene/create';
+        } else {
+            $this->name = '编辑场景';
+            $this->uri = 'scene/update';
+        }
+        if (!$sceneName = Arr::get($queryPacket, 'name')) {
+            $this->cancel = true;
+            $this->errBox[] = '名称不得为空';
+        }
+        $ability = Arr::get($queryPacket, 'ability');
+        $duration = Arr::get($queryPacket, 'duration');
+
+        $this->name = '创建场景';
+        $this->uri = 'scene/create';
+
+        $this->queryBody = compact('sceneName', 'ability', 'duration', 'sceneGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * sceneID string Y 场景ID
+     * @return $this
+     */
+    public function rmScene(array $queryPacket = []): self
+    {
+        $this->name = '删除场景';
+        $this->uri = 'scene/delete';
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        $this->queryBody = compact('sceneGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * index int N 页码
+     * length int N 条数
+     * name string N 名称
+     * @return $this
+     */
+    public function getSceneList(array $queryPacket = []): self
+    {
+        $this->name = '查询场景列表';
+        $this->uri = 'scene/page';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $sceneName = Arr::get($queryPacket, 'name');
+
+        $this->queryBody = compact('index', 'length', 'sceneName');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * sceneID string Y 场景ID
+     * UIDs string Y 识别主体 guids, 以逗号相隔，上限 100
+     * type string Y 授权类型 1-本地 2-云端
+     * passTime string N 准入时间端
+     * permissionTime string N 权限有效期
+     * permission string N 权限字段：facePermission 刷脸权限 1：无权限；2：有权限 idCardPermission 刷卡权限 1：无权限；2：有权限 faceAndCardPermission 人卡合一权限 1：无权限；2：有权限 idCardFacePermission 人证比对权限 1：无权限；2：有权限 passwordPermission 密码权限 1：无权限；2：有权限
+     * act string Y 1:新增 2:更新
+     * @return $this
+     */
+    public function setUserScene(array $queryPacket = []): self
+    {
+        if (Arr::get($queryPacket, 'act') == 1) {
+            $this->uri = 'scene/admit/add';
+            $this->name = '场景添加识别主体';
+        } else {
+            $this->uri = 'scene/admit/cookie';
+            $this->name = '场景编辑识别主体权限';
+        }
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        if (!$admitGuids = Arr::get($queryPacket, 'UIDs')) {
+            $this->cancel = true;
+            $this->errBox[] = '名称不得为空';
+        }
+        $type = Arr::get($queryPacket, 'type');
+        $passTime = Arr::get($queryPacket, 'passTime');
+        $permissionTime = Arr::get($queryPacket, 'permissionTime');
+        if ($permission = Arr::get($queryPacket, 'permission')) {
+            if (is_array($permission)) {
+                $permission = json_encode($permission);
+            }
+        }
+
+        $this->queryBody = compact('sceneGuid', 'admitGuids', 'type', 'passTime', 'permission', 'permissionTime');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * sceneID string Y 场景
+     * UIDArr mixed Y 用户ID集合
+     *  UIDArr.admitGuid string Y 识别主体 guid
+     *  UIDArr.type string Y 授权类型 1-本地 2-云端 不传默认本地
+     * @return $this
+     */
+    public function rmUserScene(array $queryPacket = []): self
+    {
+
+        $this->name = '场景移除识别主体';
+        $this->uri = 'scene/admit/remove';
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        if (!$admitArrays = Arr::get($queryPacket, 'UIDArr')) {
+            $this->cancel = true;
+            $this->errBox[] = '用户ID数组不得为空';
+        }
+
+        if (is_array($admitArrays)) {
+            $admitArrays = json_encode($admitArrays);
+        }
+
+        $this->queryBody = compact('sceneGuid', 'admitArrays');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string N 人员IDs
+     * index int N 页码
+     * length int N 条数
+     * name string N 人员name
+     * sceneID string Y  场景ID
+     * @return $this
+     */
+    public function getUserSceneList(array $queryPacket = []): self
+    {
+
+        $this->name = '查询场景中识别主体列表';
+        $this->uri = 'scene/admit';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $admitGuid = Arr::get($queryPacket, 'UID');
+        $admitName = Arr::get($queryPacket, 'name');
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        $this->queryBody = compact('index', 'length', 'admitGuid', 'admitName', 'sceneGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * sceneID string Y 场景ID
+     * type int Y 授权位置 1-本地 2-云端
+     * @return $this
+     */
+    public function clearUserScene(array $queryPacket = []): self
+    {
+        $this->uri = 'scene/admit/clear';
+        $this->name = '清空场景中识别主体';
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        if (!$type = Arr::get($queryPacket, 'type')) {
+            $this->cancel = true;
+            $this->errBox[] = '授权位置不得为空';
+        }
+
+        $this->queryBody = compact('sceneGuid', 'type');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * sceneID string Y 场景
+     * Sns string Y 设备串号
+     * cover bool N 强制添加到授权组标识，true-强制添加 false-不强制
+     * act int Y 操作 1:绑定 2:解绑
+     * @return $this
+     */
+    public function setDeviceScene(array $queryPacket = []): self
+    {
+        if (Arr::get($queryPacket, 'act') == 1) {
+            $this->uri = 'scene/device/add';
+            $this->name = '场景绑定';
+        } else {
+            $this->uri = 'scene/device/remove';
+            $this->name = '场景解绑';
+        }
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        if (!$deviceNos = Arr::get($queryPacket, 'SNs')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        $cover = Arr::get($queryPacket, 'cover');
+        $this->queryBody = compact('sceneGuid', 'deviceNos', 'cover');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SNs string N 设备序列号，以逗号相隔
+     * index int N 页码
+     * length int N 条数
+     * name string N 设备名称
+     * sceneID string Y 场景ID
+     * @return $this
+     */
+    public function getDeviceSceneList(array $queryPacket = []): self
+    {
+
+        $this->name = '查询场景中设备列表';
+        $this->uri = 'scene/device';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $deviceNos = Arr::get($queryPacket, 'SNs');
+        $deviceName = Arr::get($queryPacket, 'name');
+
+        if (!$sceneGuid = Arr::get($queryPacket, 'sceneID')) {
+            $this->cancel = true;
+            $this->errBox[] = '场景ID不得为空';
+        }
+
+        $this->queryBody = compact('index', 'length', 'deviceNos', 'deviceName', 'sceneGuid');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * UIDs string Y 识别主体 guids, 以逗号相隔，上限 100
+     * type string Y 授权类型 1-本地 2-云端
+     * passTime string N 准入时间端
+     * permissionTime string N 权限有效期
+     * permission string N 权限字段：facePermission 刷脸权限 1：无权限；2：有权限 idCardPermission 刷卡权限 1：无权限；2：有权限 faceAndCardPermission 人卡合一权限 1：无权限；2：有权限 idCardFacePermission 人证比对权限 1：无权限；2：有权限 passwordPermission 密码权限 1：无权限；2：有权限
+     * act string Y 1:新增 2:更新
+     * @return $this
+     */
+    public function authorizedBodyFeatures(array $queryPacket = []): self
+    {
+        if (Arr::get($queryPacket, 'act') == 1) {
+            $this->uri = 'auth/device';
+            $this->name = '设备授权识别主体';
+        } else {
+            $this->uri = 'scene/admit/cookie';
+            $this->name = '场景编辑识别主体权限';
+        }
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        if (!$admitGuids = Arr::get($queryPacket, 'UIDs')) {
+            $this->cancel = true;
+            $this->errBox[] = '名称不得为空';
+        }
+        $type = Arr::get($queryPacket, 'type');
+        $passTime = Arr::get($queryPacket, 'passTime');
+        $permissionTime = Arr::get($queryPacket, 'permissionTime');
+        if ($permission = Arr::get($queryPacket, 'permission')) {
+            if (is_array($permission)) {
+                $permission = json_encode($permission);
+            }
+        }
+
+        $this->queryBody = compact('deviceNo', 'admitGuids', 'type', 'passTime', 'permissionTime', 'permission');
         return $this;
     }
 

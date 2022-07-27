@@ -156,7 +156,7 @@ class WT extends Platform
 
     protected function injectToken()
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->appId);
         if (!$this->token = cache($cacheKey)) {
             $resp = $this->auth()->fire();
             if ($this->token = Arr::get($resp, 'data') ?: Arr::get($resp, 'raw_resp.data')) {

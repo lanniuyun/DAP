@@ -4,8 +4,10 @@ namespace On3\DAP\Traits;
 
 trait DAPBaseTrait
 {
-    protected static function getCacheKey(): string
+    protected static function getCacheKey(string $key = null): string
     {
-        return 'DAP:' . __CLASS__ . ':token';
+        $cacheKey = 'DAP:' . __CLASS__ . ':token';
+        $key && $cacheKey .= ':' . $key;
+        return $cacheKey;
     }
 }

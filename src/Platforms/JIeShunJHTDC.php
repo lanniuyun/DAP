@@ -44,7 +44,7 @@ class JIeShunJHTDC extends Platform
 
     protected function injectToken()
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->pno);
         if ($token = cache($cacheKey)) {
             $this->token = $token;
         } else {
@@ -119,7 +119,7 @@ class JIeShunJHTDC extends Platform
     protected function refreshToken($response)
     {
         if (Arr::get($response, 'resultCode') === 203) {
-            Cache::forget(self::getCacheKey());
+            Cache::forget(self::getCacheKey($this->pno));
             $this->injectToken();
         }
     }

@@ -30,7 +30,7 @@ class AnJuBao extends Platform
 
     protected function injectSecretId()
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->userName);
         if ($secretId = cache($cacheKey)) {
             $this->secretId = $secretId;
         } else {

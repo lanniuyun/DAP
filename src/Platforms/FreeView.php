@@ -47,7 +47,7 @@ class FreeView extends Platform
 
     protected function injectToken()
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->username);
         $day = now()->toDateString();
         $cacheKey .= ':' . $day;
         if ($token = cache($cacheKey)) {

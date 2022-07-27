@@ -1471,7 +1471,7 @@ class JieShun extends Platform
     protected function refreshToken($response)
     {
         if (Arr::get($response, 'resultCode') === 6) {
-            Cache::forget(self::getCacheKey());
+            Cache::forget(self::getCacheKey($this->usr));
             $this->injectToken();
         }
     }
@@ -1484,7 +1484,7 @@ class JieShun extends Platform
 
     protected function injectToken()
     {
-        $cacheKey = self::getCacheKey();
+        $cacheKey = self::getCacheKey($this->usr);
         if ($token = cache($cacheKey)) {
             $this->token = $token;
         } else {
