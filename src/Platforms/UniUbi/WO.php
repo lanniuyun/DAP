@@ -1482,7 +1482,7 @@ class WO extends Platform
      * type string Y 授权类型 1-本地 2-云端
      * passTime string N 准入时间端
      * permissionTime string N 权限有效期
-     * permission string N 权限字段：facePermission 刷脸权限 1：无权限；2：有权限 idCardPermission 刷卡权限 1：无权限；2：有权限 faceAndCardPermission 人卡合一权限 1：无权限；2：有权限 idCardFacePermission 人证比对权限 1：无权限；2：有权限 passwordPermission 密码权限 1：无权限；2：有权限
+     * permission Mixed N 权限字段：facePermission 刷脸权限 1：无权限；2：有权限 idCardPermission 刷卡权限 1：无权限；2：有权限 faceAndCardPermission 人卡合一权限 1：无权限；2：有权限 idCardFacePermission 人证比对权限 1：无权限；2：有权限 passwordPermission 密码权限 1：无权限；2：有权限
      * act string Y 1:新增 2:更新
      * @return $this
      */
@@ -1492,8 +1492,8 @@ class WO extends Platform
             $this->uri = 'auth/device';
             $this->name = '设备授权识别主体';
         } else {
-            $this->uri = 'scene/admit/cookie';
-            $this->name = '场景编辑识别主体权限';
+            $this->uri = 'auth/device/update';
+            $this->name = '设备修改识别主体权限';
         }
 
         if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
@@ -1515,6 +1515,91 @@ class WO extends Platform
         }
 
         $this->queryBody = compact('deviceNo', 'admitGuids', 'type', 'passTime', 'permissionTime', 'permission');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * srcSN string Y 源设备序列号
+     * destSN string Y 目标设备序列号
+     * @return $this
+     */
+    public function copyBodyFeatures(array $queryPacket = []): self
+    {
+        $this->uri = 'auth/device/copy';
+        $this->name = '设备间权限复制';
+
+        if (!$srcDeviceKey = Arr::get($queryPacket, 'srcSN')) {
+            $this->cancel = true;
+            $this->errBox[] = '源设备序列号不得为空';
+        }
+
+        if (!$destDeviceKey = Arr::get($queryPacket, 'destSN')) {
+            $this->cancel = true;
+            $this->errBox[] = '目标设备序列号不得为空';
+        }
+
+        $this->queryBody = compact('srcDeviceKey', 'destDeviceKey');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * SN string Y 设备序列号
+     * UIDs string Y 识别主体 guids, 以逗号相隔，上限 100
+     * type string N 授权类型 1-本地 2-云端
+     * @return $this
+     */
+    public function cancelBodyFeatures(array $queryPacket = []): self
+    {
+        $this->uri = 'auth/device/revoke';
+        $this->name = '设备销权识别主体';
+
+
+        if (!$deviceNo = Arr::get($queryPacket, 'SN')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备编号不得为空';
+        }
+
+        if (!$admitGuids = Arr::get($queryPacket, 'UIDs')) {
+            $this->cancel = true;
+            $this->errBox[] = '名称不得为空';
+        }
+        $type = Arr::get($queryPacket, 'type');
+
+        $this->queryBody = compact('deviceNo', 'admitGuids', 'type');
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * UID string N 识别主体ID
+     * deviceName string N 设备名称
+     * SN string N 设备序列号
+     * index int N 页码
+     * length int N 页数
+     * userName string N 识别主体名称
+     * sceneID string N 场景ID
+     * startTime string N 时间区间，开始时间 查询时间区间开始(UTC 时间/毫秒值),如 2018-08-08T08:18:28+0000 或 1542793088000
+     * endTime string N 时间区间，结束时间 查询时间区间开始(UTC 时间/毫秒值),如 2018-08-08T08:18:28+0000 或 1542793088000
+     * @return $this
+     */
+    public function getBodyFeatures(array $queryPacket = []): self
+    {
+        $this->uri = 'scene/auth';
+        $this->name = '授权列表查询';
+
+        $index = intval(Arr::get($queryPacket, 'index')) ?: 1;
+        $length = min(intval(Arr::get($queryPacket, 'length')) ?: 50, 100);
+        $admitGuid = Arr::get($queryPacket, 'UID');
+        $deviceName = Arr::get($queryPacket, 'deviceName');
+        $deviceNo = Arr::get($queryPacket, 'SN');
+        $admitName = Arr::get($queryPacket, 'userName');
+        $sceneGuid = Arr::get($queryPacket, 'sceneID');
+        $startTime = Arr::get($queryPacket, 'startTime');
+        $endTime = Arr::get($queryPacket, 'endTime');
+
+        $this->queryBody = compact('index', 'length', 'admitName', 'admitGuid', 'deviceNo', 'deviceName', 'sceneGuid', 'startTime', 'endTime');
         return $this;
     }
 
