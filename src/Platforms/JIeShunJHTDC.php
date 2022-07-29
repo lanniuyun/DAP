@@ -42,16 +42,16 @@ class JIeShunJHTDC extends Platform
         }
     }
 
-    public function injectToken()
+    public function injectToken(bool $refresh = false)
     {
         $cacheKey = self::getCacheKey($this->pno);
-        if ($token = cache($cacheKey)) {
-            $this->token = $token;
-        } else {
+        if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->login()->fire();
             if ($this->token = Arr::get($response, 'tn') ?: Arr::get($response, 'raw_resp.tn')) {
                 cache([$cacheKey => $this->token], now()->addSeconds(Arr::get($response, 'timeOut') ?: 86400));
             }
+        } else {
+            $this->token = $token;
         }
 
         if (!$this->token) {

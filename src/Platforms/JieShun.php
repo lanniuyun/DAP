@@ -1473,16 +1473,16 @@ class JieShun extends Platform
         $this->uriPatch($this->uri, ['p' => json_encode(is_array($this->hashPacket) ? $this->hashPacket : [])]);
     }
 
-    public function injectToken()
+    public function injectToken(bool $refresh = false)
     {
         $cacheKey = self::getCacheKey($this->usr);
-        if ($token = cache($cacheKey)) {
-            $this->token = $token;
-        } else {
+        if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->login()->fire();
             if ($this->token = Arr::get($response, 'token') ?: Arr::get($response, 'raw_resp.token')) {
                 cache([$cacheKey => $this->token], now()->addHour());
             }
+        } else {
+            $this->token = $token;
         }
 
         if (!$this->token) {

@@ -45,18 +45,18 @@ class FreeView extends Platform
         $loadingToken && $this->injectToken();
     }
 
-    public function injectToken()
+    public function injectToken(bool $refresh = false)
     {
         $cacheKey = self::getCacheKey($this->username);
         $day = now()->toDateString();
         $cacheKey .= ':' . $day;
-        if ($token = cache($cacheKey)) {
-            $this->token = $token;
-        } else {
+        if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->getToken()->fire();
             if ($this->token = Arr::get($response, 'access_token') ?: Arr::get($response, 'raw_resp.access_token')) {
                 cache([$cacheKey => $this->token], now()->addDay());
             }
+        } else {
+            $this->token = $token;
         }
 
         if (!$this->token) {

@@ -157,7 +157,7 @@ class WT extends Platform
     public function injectToken(bool $refresh = false)
     {
         $cacheKey = self::getCacheKey($this->appId);
-        if ((!$this->token = cache($cacheKey)) || $refresh) {
+        if (!($this->token = cache($cacheKey)) || $refresh) {
             $resp = $this->auth()->fire();
             if ($this->token = Arr::get($resp, 'data') ?: Arr::get($resp, 'raw_resp.data')) {
                 cache([$cacheKey => $this->token], now()->addHours(18));
