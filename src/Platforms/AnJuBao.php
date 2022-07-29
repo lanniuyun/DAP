@@ -18,17 +18,17 @@ class AnJuBao extends Platform
     protected $userName;
     protected $passWord;
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         $this->userName = Arr::get($config, 'userName');
         $this->passWord = Arr::get($config, 'passWord');
         $this->secretKey = Arr::get($config, 'secretKey');
         $this->gateway = $dev ? Gateways::AN_JU_BAO_DEV : Gateways::AN_JU_BAO;
         $this->configValidator();
-        $this->injectSecretId();
+        $loadingToken && $this->injectSecretId();
     }
 
-    protected function injectSecretId()
+    public function injectSecretId()
     {
         $cacheKey = self::getCacheKey($this->userName);
         if ($secretId = cache($cacheKey)) {
@@ -111,7 +111,7 @@ class AnJuBao extends Platform
             $rawResponse = $httpClient->$httpMethod($this->uri, $this->queryBody);
             $contentStr = $rawResponse->getBody()->getContents();
             $contentArr = @json_decode($contentStr, true);
-            dd($contentStr,$contentArr);
+            dd($contentStr, $contentArr);
         }
     }
 

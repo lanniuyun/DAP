@@ -27,7 +27,7 @@ class CQTelecom extends Platform
     const ACT_UPDATE = 'update';
     const ACT_DEL = 'delete';
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
 
         $this->appKey = Arr::get($config, 'appKey');

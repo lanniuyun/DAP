@@ -29,7 +29,7 @@ class FreeView extends Platform
     const BODY_FEATURES_DEL_URI = 'GeneralHumanFeatures';
     const REMOTE_UNLOCK_DOOR_URI = 'RemoteUnlock/GeneralOpenDoor';
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         $this->username = Arr::get($config, 'username');
         $this->password = Arr::get($config, 'password');
@@ -42,10 +42,10 @@ class FreeView extends Platform
         }
         $this->configValidator();
         $this->injectLogObj();
-        $this->injectToken();
+        $loadingToken && $this->injectToken();
     }
 
-    protected function injectToken()
+    public function injectToken()
     {
         $cacheKey = self::getCacheKey($this->username);
         $day = now()->toDateString();

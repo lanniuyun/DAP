@@ -103,7 +103,7 @@ class JieShun extends Platform
 
     protected $token;
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         $this->cid = Arr::get($config, 'cid');
         $this->usr = Arr::get($config, 'usr');
@@ -118,7 +118,7 @@ class JieShun extends Platform
         $this->jhtdc = new JIeShunJHTDC(Arr::only($config, ['pno', 'secret']), $dev);
         $this->injectLogObj();
         $this->configValidator();
-        $this->injectToken();
+        $loadingToken && $this->injectToken();
     }
 
     //临停缴费
@@ -1482,7 +1482,7 @@ class JieShun extends Platform
         $this->uriPatch($this->uri, ['p' => json_encode(is_array($this->hashPacket) ? $this->hashPacket : [])]);
     }
 
-    protected function injectToken()
+    public function injectToken()
     {
         $cacheKey = self::getCacheKey($this->usr);
         if ($token = cache($cacheKey)) {

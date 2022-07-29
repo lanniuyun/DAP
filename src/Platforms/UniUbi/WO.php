@@ -501,7 +501,7 @@ class WO extends Platform
     const API_V2 = 'v2/';
     const SOURCE_UFACE = '000000';
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -515,7 +515,7 @@ class WO extends Platform
 
         $this->injectLogObj();
         $this->configValidator();
-        $this->injectToken();
+        $loadingToken && $this->injectToken();
     }
 
     public function injectToken(bool $refresh = false)

@@ -29,42 +29,42 @@ class DAP
      * @param bool $dev
      * @return static
      */
-    public static function jieShun(array $config, bool $dev = false): self
+    public static function jieShun(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
-        $dap->platform = new JieShun($config, $dev);
+        $dap->platform = new JieShun($config, $dev, $loadingToken);
         return $dap;
     }
 
-    public static function freeView(array $config, bool $dev = false): self
+    public static function freeView(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
-        $dap->platform = new FreeView($config, $dev);
+        $dap->platform = new FreeView($config, $dev, $loadingToken);
         return $dap;
     }
 
-    public static function CQTelecom(array $config, bool $dev = false): self
+    public static function CQTelecom(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
-        $dap->platform = new CQTelecom($config, $dev);
+        $dap->platform = new CQTelecom($config, $dev, $loadingToken);
         return $dap;
     }
 
-    public static function keyTop(array $config, bool $dev = false): self
+    public static function keyTop(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
-        $dap->platform = new KeyTop($config, $dev);
+        $dap->platform = new KeyTop($config, $dev, $loadingToken);
         return $dap;
     }
 
-    public static function anJuBao(array $config, bool $dev = false): self
+    public static function anJuBao(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
-        $dap->platform = new AnJuBao($config, $dev);
+        $dap->platform = new AnJuBao($config, $dev, $loadingToken);
         return $dap;
     }
 
-    static public function uniUbi(array $config, bool $dev = false): self
+    static public function uniUbi(array $config, bool $dev = false, bool $loadingToken = true): self
     {
         $dap = new self;
         $ver = Arr::get($config, 'ver') ?: 'wo';
@@ -73,7 +73,7 @@ class DAP
         } else {
             $platformClass = WO::class;
         }
-        $dap->platform = new $platformClass($config, $dev);
+        $dap->platform = new $platformClass($config, $dev, $loadingToken);
         return $dap;
     }
 

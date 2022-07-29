@@ -21,14 +21,14 @@ class JIeShunJHTDC extends Platform
     protected $token;
     protected $sn;
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         $this->pno = Arr::get($config, 'pno');
         $this->secret = Arr::get($config, 'secret');
         $this->gateway = !$dev ? Gateways::JIE_SHUN_JHTDC : Gateways::JIE_SHUN_JHTDC_DEV;
         $this->injectLogObj();
         $this->configValidator();
-        $this->injectToken();
+        $loadingToken && $this->injectToken();
     }
 
     protected function configValidator()
@@ -42,7 +42,7 @@ class JIeShunJHTDC extends Platform
         }
     }
 
-    protected function injectToken()
+    public function injectToken()
     {
         $cacheKey = self::getCacheKey($this->pno);
         if ($token = cache($cacheKey)) {

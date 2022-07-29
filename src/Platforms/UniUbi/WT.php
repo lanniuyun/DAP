@@ -137,7 +137,7 @@ class WT extends Platform
     const TARGET_USER = 'USER';
     const TARGET_DEVICE = 'DEVICE';
 
-    public function __construct(array $config, bool $dev = false)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
     {
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -151,13 +151,13 @@ class WT extends Platform
 
         $this->injectLogObj();
         $this->configValidator();
-        $this->injectToken();
+        $loadingToken && $this->injectToken();
     }
 
-    protected function injectToken()
+    public function injectToken(bool $refresh = false)
     {
         $cacheKey = self::getCacheKey($this->appId);
-        if (!$this->token = cache($cacheKey)) {
+        if ((!$this->token = cache($cacheKey)) || $refresh) {
             $resp = $this->auth()->fire();
             if ($this->token = Arr::get($resp, 'data') ?: Arr::get($resp, 'raw_resp.data')) {
                 cache([$cacheKey => $this->token], now()->addHours(18));
