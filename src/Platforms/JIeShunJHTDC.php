@@ -116,14 +116,6 @@ class JIeShunJHTDC extends Platform
         $response = $resPacket;
     }
 
-    protected function refreshToken($response)
-    {
-        if (Arr::get($response, 'resultCode') === 203) {
-            Cache::forget(self::getCacheKey($this->pno));
-            $this->injectToken();
-        }
-    }
-
     public function fire()
     {
         $httpMethod = $this->httpMethod;
@@ -145,7 +137,6 @@ class JIeShunJHTDC extends Platform
             $this->cleanup();
 
             if ($rawResponse->getStatusCode() === 200) {
-                $this->refreshToken($contentArr);
                 switch ($this->responseFormat) {
                     case self::RESP_FMT_JSON:
                         $responsePacket = $contentArr;

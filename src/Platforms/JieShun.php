@@ -1450,7 +1450,6 @@ class JieShun extends Platform
             $this->cleanup();
 
             if ($rawResponse->getStatusCode() === 200) {
-                $this->refreshToken($contentArr);
                 switch ($this->responseFormat) {
                     case self::RESP_FMT_JSON:
                         $responsePacket = $contentArr;
@@ -1465,14 +1464,6 @@ class JieShun extends Platform
             } else {
                 throw new RequestFailedException('接口请求失败:' . $apiName);
             }
-        }
-    }
-
-    protected function refreshToken($response)
-    {
-        if (Arr::get($response, 'resultCode') === 6) {
-            Cache::forget(self::getCacheKey($this->usr));
-            $this->injectToken();
         }
     }
 
