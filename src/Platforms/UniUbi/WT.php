@@ -154,9 +154,15 @@ class WT extends Platform
         $loadingToken && $this->injectToken();
     }
 
+
+    public function cacheKey(): string
+    {
+        return self::getCacheKey($this->appId);
+    }
+
     public function injectToken(bool $refresh = false)
     {
-        $cacheKey = self::getCacheKey($this->appId);
+        $cacheKey = $this->cacheKey();
         if (!($this->token = cache($cacheKey)) || $refresh) {
             $resp = $this->auth()->fire();
             if ($this->token = Arr::get($resp, 'data') ?: Arr::get($resp, 'raw_resp.data')) {
@@ -1269,7 +1275,7 @@ class WT extends Platform
 
     protected function packetBody(array $body)
     {
-        $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->token]);
+        $this->queryBody = array_merge($body, ['appId' => $this->appId, 'token' => $this->getLocalToken($this->cacheKey())]);
     }
 
     protected function configValidator()

@@ -5,11 +5,10 @@ namespace On3\DAP\Platforms;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
-use On3\DAP\Exceptions\InvalidArgumentException;
-use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Traits\DAPBaseTrait;
 use On3\DAP\Traits\DAPHashTrait;
+use On3\DAP\Exceptions\RequestFailedException;
+use On3\DAP\Exceptions\InvalidArgumentException;
 
 class JieShun extends Platform
 {
@@ -1473,9 +1472,14 @@ class JieShun extends Platform
         $this->uriPatch($this->uri, ['p' => json_encode(is_array($this->hashPacket) ? $this->hashPacket : [])]);
     }
 
+    public function cacheKey(): string
+    {
+        return self::getCacheKey($this->usr);
+    }
+
     public function injectToken(bool $refresh = false)
     {
-        $cacheKey = self::getCacheKey($this->usr);
+        $cacheKey = $this->cacheKey();
         if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->login()->fire();
             if ($this->token = Arr::get($response, 'token') ?: Arr::get($response, 'raw_resp.token')) {
@@ -1497,7 +1501,7 @@ class JieShun extends Platform
         }
 
         if ($auto) {
-            $uriParams['tn'] = $this->token;
+            $uriParams['tn'] = $this->getLocalToken($this->cacheKey());
             $uriParams['v'] = $this->v;
             $uriParams['sn'] = $this->sn;
         }

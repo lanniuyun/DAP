@@ -45,6 +45,8 @@ abstract class Platform implements PlatformInterface
 
     abstract protected function formatResp(&$response);
 
+    abstract public function cacheKey(): string;
+
     protected function injectLogObj()
     {
         $calledClass = get_called_class();

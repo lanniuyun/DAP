@@ -45,11 +45,17 @@ class FreeView extends Platform
         $loadingToken && $this->injectToken();
     }
 
-    public function injectToken(bool $refresh = false)
+    public function cacheKey(): string
     {
         $cacheKey = self::getCacheKey($this->username);
         $day = now()->toDateString();
         $cacheKey .= ':' . $day;
+        return $cacheKey;
+    }
+
+    public function injectToken(bool $refresh = false)
+    {
+        $cacheKey = $this->cacheKey();
         if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->getToken()->fire();
             if ($this->token = Arr::get($response, 'access_token') ?: Arr::get($response, 'raw_resp.access_token')) {
@@ -69,7 +75,7 @@ class FreeView extends Platform
         $headerToken = '';
         switch (ucfirst($tokenType)) {
             case 'Bearer':
-                $headerToken = 'Bearer ' . $this->token;
+                $headerToken = 'Bearer ' . $this->getLocalToken($this->cacheKey());
                 break;
             case 'Basic':
                 $headerToken = 'Basic ' . base64_encode($this->uuid);

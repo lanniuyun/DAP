@@ -4,10 +4,9 @@ namespace On3\DAP\Platforms;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Cache;
-use On3\DAP\Exceptions\InvalidArgumentException;
-use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Traits\DAPBaseTrait;
+use On3\DAP\Exceptions\RequestFailedException;
+use On3\DAP\Exceptions\InvalidArgumentException;
 
 class JIeShunJHTDC extends Platform
 {
@@ -42,9 +41,14 @@ class JIeShunJHTDC extends Platform
         }
     }
 
+    public function cacheKey(): string
+    {
+        return self::getCacheKey($this->pno);
+    }
+
     public function injectToken(bool $refresh = false)
     {
-        $cacheKey = self::getCacheKey($this->pno);
+        $cacheKey = $this->cacheKey();
         if (!($token = cache($cacheKey)) || $refresh) {
             $response = $this->login()->fire();
             if ($this->token = Arr::get($response, 'tn') ?: Arr::get($response, 'raw_resp.tn')) {
@@ -92,7 +96,7 @@ class JIeShunJHTDC extends Platform
         $this->generateSignature();
         $this->queryBody = [
             'pno' => $this->pno,
-            'tn' => $this->token,
+            'tn' => $this->getLocalToken($this->cacheKey()),
             'ts' => $ts,
             've' => $this->ve,
             'sn' => $this->sn,

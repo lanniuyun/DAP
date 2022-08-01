@@ -518,9 +518,14 @@ class WO extends Platform
         $loadingToken && $this->injectToken();
     }
 
+    public function cacheKey(): string
+    {
+        return self::getCacheKey($this->appKey);
+    }
+
     public function injectToken(bool $refresh = false)
     {
-        $cacheKey = self::getCacheKey($this->appKey);
+        $cacheKey = $this->cacheKey();
         if (!($this->token = cache($cacheKey)) || $refresh) {
             $response = $this->auth()->fire();
             if ($this->token = Arr::get($response, 'data') ?: Arr::get($response, 'raw_resp.data')) {
@@ -1609,7 +1614,7 @@ class WO extends Platform
         $httpMethod = $this->httpMethod;
         $gateway = trim($this->gateway, '/') . '/';
         $uri = $this->apiVer . $this->uri;
-        $headers = $this->headers ?: ['token' => $this->token, 'projectGuid' => $this->projectID];
+        $headers = $this->headers ?: ['token' => $this->getLocalToken($this->cacheKey()), 'projectGuid' => $this->projectID];
 
         $httpClient = new Client(['base_uri' => $gateway, 'timeout' => $this->timeout, 'verify' => false]);
 
