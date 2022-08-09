@@ -218,4 +218,9 @@ class CQTelecom extends Platform
         parent::cleanup();
         $this->headers = [];
     }
+
+    public function cacheKey(): string
+    {
+        return '';
+    }
 }

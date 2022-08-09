@@ -119,4 +119,9 @@ class AnJuBao extends Platform
     {
         // TODO: Implement formatResp() method.
     }
+
+    public function cacheKey(): string
+    {
+        return '';
+    }
 }
