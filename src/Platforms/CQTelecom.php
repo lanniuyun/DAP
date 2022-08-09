@@ -77,6 +77,11 @@ class CQTelecom extends Platform
                 $this->cancel = true;
                 $this->errBox[] = '小区地址不得为空';
             }
+
+            if(!Arr::get($user,'citizenIdNumber')){
+                $this->cancel = true;
+                $this->errBox[] = '身份证号码不得为空';
+            }
         }
 
         $sn = Arr::get($bodyPacket, 'sn');
