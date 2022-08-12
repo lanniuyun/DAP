@@ -1155,6 +1155,9 @@ class WO extends Platform
      */
     public function setUserFace(array $queryPacket = []): self
     {
+        $this->name = '人像注册';
+        $this->uri = 'face/register';
+
         if (!$admitGuid = Arr::get($queryPacket, 'UID')) {
             $this->cancel = true;
             $this->errBox[] = '人员编号不得为空';
