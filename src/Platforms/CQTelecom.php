@@ -78,7 +78,7 @@ class CQTelecom extends Platform
                 $this->errBox[] = '小区地址不得为空';
             }
 
-            if(!Arr::get($user,'citizenIdNumber')){
+            if (!Arr::get($user, 'citizenIdNumber')) {
                 $this->cancel = true;
                 $this->errBox[] = '身份证号码不得为空';
             }
@@ -162,7 +162,7 @@ class CQTelecom extends Platform
     protected function generateSignature()
     {
         $nonce = Str::random(8);
-        $timestamp = time();
+        $timestamp = intval(microtime(true) * 1000);
         $this->headers['Nonce'] = $nonce;
         $this->headers['Timestamp'] = $timestamp;
         $this->headers['Sign'] = sha1($timestamp . $nonce . json_encode($this->queryBody) . $this->appKey . $this->appSecret);
