@@ -39,6 +39,15 @@ abstract class Platform implements PlatformInterface
         $this->errBox = [];
     }
 
+    public function timeout($timeout)
+    {
+        $timeout = abs(intval($timeout));
+        if ($timeout > $this->timeout) {
+            $this->timeout = $timeout;
+        }
+        return $this;
+    }
+
     abstract protected function configValidator();
 
     abstract protected function generateSignature();
