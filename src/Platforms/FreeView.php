@@ -452,7 +452,10 @@ class FreeView extends Platform
                 $contentArr = ['Code' => $exception->getCode(), 'Msg' => $exception->getMessage()];
             }
 
-            $this->logging->info($this->name, ['gateway' => $apiGateway, 'uri' => $this->uri, 'queryBody' => $queryBody, 'response' => $contentArr]);
+            try {
+                $this->logging->info($this->name, ['gateway' => $apiGateway, 'uri' => $this->uri, 'queryBody' => $queryBody, 'response' => $contentArr]);
+            } catch (\Throwable $exception) {}
+
             $this->cleanup();
 
             switch ($this->responseFormat) {

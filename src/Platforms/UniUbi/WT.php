@@ -1340,9 +1340,13 @@ class WT extends Platform
                     $rawResponse = $httpClient->$httpMethod($uri, ['form_params' => $this->queryBody]);
                     break;
             }
+
             $respRaw = $rawResponse->getBody()->getContents();
             $respArr = @json_decode($respRaw, true) ?: [];
-            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+
+            try {
+                $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+            } catch (\Throwable $exception) {}
 
             $this->cleanup();
 

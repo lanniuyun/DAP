@@ -1444,7 +1444,10 @@ class JieShun extends Platform
             $rawResponse = $httpClient->$httpMethod($this->uri, $this->queryBody);
             $contentStr = $rawResponse->getBody()->getContents();
             $contentArr = @json_decode($contentStr, true);
-            $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+
+            try {
+                $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+            } catch (\Throwable $exception) {}
 
             $this->cleanup();
 

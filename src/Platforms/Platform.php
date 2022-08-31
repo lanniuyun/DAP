@@ -4,6 +4,7 @@ namespace On3\DAP\Platforms;
 
 use Illuminate\Support\Facades\Log;
 use On3\DAP\Contracts\PlatformInterface;
+use Psr\Log\LoggerInterface;
 
 abstract class Platform implements PlatformInterface
 {
@@ -44,6 +45,16 @@ abstract class Platform implements PlatformInterface
         $timeout = abs(intval($timeout));
         if ($timeout > $this->timeout) {
             $this->timeout = $timeout;
+        }
+        return $this;
+    }
+
+    public function setLogger(LoggerInterface $logger = null)
+    {
+        if ($logger) {
+            $this->logging = $logger;
+        } else {
+            $this->logging = null;
         }
         return $this;
     }

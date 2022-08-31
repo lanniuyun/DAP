@@ -4,6 +4,7 @@ namespace On3\DAP\Platforms\UniUbi;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Platforms\Gateways;
@@ -1644,7 +1645,10 @@ class WO extends Platform
 
             $respRaw = $rawResponse->getBody()->getContents();
             $respArr = @json_decode($respRaw, true) ?: [];
-            $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'headers' => $headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+
+            try {
+                $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'headers' => $headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
+            } catch (\Throwable $exception) {}
 
             $this->cleanup();
 
