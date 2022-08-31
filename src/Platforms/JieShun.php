@@ -102,7 +102,7 @@ class JieShun extends Platform
 
     protected $token;
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->cid = Arr::get($config, 'cid');
         $this->usr = Arr::get($config, 'usr');
@@ -115,8 +115,9 @@ class JieShun extends Platform
             $this->gateway = $dev ? Gateways::JIE_SHUN_DEV : Gateways::JIE_SHUN;
         }
         $this->jhtdc = new JIeShunJHTDC(Arr::only($config, ['pno', 'secret']), $dev);
-        $this->injectLogObj();
+
         $this->configValidator();
+        $autoLogging && $this->injectLogObj();
         $loadingToken && $this->injectToken();
     }
 
@@ -1447,7 +1448,8 @@ class JieShun extends Platform
 
             try {
                 $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
-            } catch (\Throwable $exception) {}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 

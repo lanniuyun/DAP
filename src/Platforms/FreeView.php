@@ -29,7 +29,7 @@ class FreeView extends Platform
     const BODY_FEATURES_DEL_URI = 'GeneralHumanFeatures';
     const REMOTE_UNLOCK_DOOR_URI = 'RemoteUnlock/GeneralOpenDoor';
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->username = Arr::get($config, 'username');
         $this->password = Arr::get($config, 'password');
@@ -41,7 +41,7 @@ class FreeView extends Platform
             $this->gateway = $dev ? Gateways::FREE_VIEW_DEV : Gateways::FREE_VIEW;
         }
         $this->configValidator();
-        $this->injectLogObj();
+        $autoLogging && $this->injectLogObj();
         $loadingToken && $this->injectToken();
     }
 
@@ -454,7 +454,8 @@ class FreeView extends Platform
 
             try {
                 $this->logging->info($this->name, ['gateway' => $apiGateway, 'uri' => $this->uri, 'queryBody' => $queryBody, 'response' => $contentArr]);
-            } catch (\Throwable $exception) {}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 

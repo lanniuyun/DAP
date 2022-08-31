@@ -18,7 +18,7 @@ class AnJuBao extends Platform
     protected $userName;
     protected $passWord;
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->userName = Arr::get($config, 'userName');
         $this->passWord = Arr::get($config, 'passWord');

@@ -4,7 +4,6 @@ namespace On3\DAP\Platforms\UniUbi;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Log;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Platforms\Gateways;
@@ -502,7 +501,7 @@ class WO extends Platform
     const API_V2 = 'v2/';
     const SOURCE_UFACE = '000000';
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -514,8 +513,8 @@ class WO extends Platform
         $this->appSecret = Arr::get($config, 'appSecret');
         $this->projectID = Arr::get($config, 'projectGuid');
 
-        $this->injectLogObj();
         $this->configValidator();
+        $autoLogging && $this->injectLogObj();
         $loadingToken && $this->injectToken();
     }
 
@@ -1648,7 +1647,8 @@ class WO extends Platform
 
             try {
                 $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'headers' => $headers, 'queryBody' => $this->queryBody, 'response' => $respArr]);
-            } catch (\Throwable $exception) {}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 

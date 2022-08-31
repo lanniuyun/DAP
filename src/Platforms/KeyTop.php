@@ -18,7 +18,7 @@ class KeyTop extends Platform
 
     const API_VERSION = '1.0.0';
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->appId = Arr::get($config, 'appId');
         $this->appSecret = Arr::get($config, 'appSecret');

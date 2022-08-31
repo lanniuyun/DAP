@@ -137,7 +137,7 @@ class WT extends Platform
     const TARGET_USER = 'USER';
     const TARGET_DEVICE = 'DEVICE';
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -149,8 +149,8 @@ class WT extends Platform
         $this->appKey = Arr::get($config, 'appKey');
         $this->appSecret = Arr::get($config, 'appSecret');
 
-        $this->injectLogObj();
         $this->configValidator();
+        $autoLogging && $this->injectLogObj();
         $loadingToken && $this->injectToken();
     }
 
@@ -1346,7 +1346,8 @@ class WT extends Platform
 
             try {
                 $this->logging && $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'queryBody' => $this->queryBody, 'response' => $respArr]);
-            } catch (\Throwable $exception) {}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 

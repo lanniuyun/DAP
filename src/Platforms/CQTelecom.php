@@ -27,7 +27,7 @@ class CQTelecom extends Platform
     const ACT_UPDATE = 'update';
     const ACT_DEL = 'delete';
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
 
         $this->appKey = Arr::get($config, 'appKey');
@@ -44,7 +44,7 @@ class CQTelecom extends Platform
         }
 
         $this->configValidator();
-        $this->injectLogObj();
+        $autoLogging && $this->injectLogObj();
     }
 
     public function setUsers(array $bodyPacket): self
@@ -198,9 +198,10 @@ class CQTelecom extends Platform
             $contentStr = $rawResponse->getBody()->getContents();
             $contentArr = @json_decode($contentStr, true);
 
-            try{
+            try {
                 $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $queryBody, 'response' => $contentArr]);
-            }catch (\Throwable $exception){}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 

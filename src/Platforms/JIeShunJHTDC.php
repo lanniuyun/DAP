@@ -20,13 +20,14 @@ class JIeShunJHTDC extends Platform
     protected $token;
     protected $sn;
 
-    public function __construct(array $config, bool $dev = false, bool $loadingToken = true)
+    public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->pno = Arr::get($config, 'pno');
         $this->secret = Arr::get($config, 'secret');
         $this->gateway = !$dev ? Gateways::JIE_SHUN_JHTDC : Gateways::JIE_SHUN_JHTDC_DEV;
-        $this->injectLogObj();
+
         $this->configValidator();
+        $autoLogging && $this->injectLogObj();
         $loadingToken && $this->injectToken();
     }
 
@@ -138,9 +139,10 @@ class JIeShunJHTDC extends Platform
             $contentStr = $rawResponse->getBody()->getContents();
             $contentArr = @json_decode($contentStr, true);
 
-            try{
+            try {
                 $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
-            }catch (\Throwable $exception){}
+            } catch (\Throwable $exception) {
+            }
 
             $this->cleanup();
 
