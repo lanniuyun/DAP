@@ -19,7 +19,7 @@ class Gateways
     const FREE_VIEW = 'http://120.238.123.92';
 
     const CQ_TELECOM_DEV = 'http://118.31.244.168:18007/api/v1/lanniu/api/';
-    const CQ_TELECOM = 'http://118.31.244.168:18007/api/v1/lanniu/api/';
+    const CQ_TELECOM = 'https://aiot.smartccs.cn/aegateway/api/v1/lanniu/';
 
     const WT = 'http://gs-api.uface.uni-ubi.com/v1/';
     const WT_DEV = 'http://gs-api.uface.uni-ubi.com/v1/';

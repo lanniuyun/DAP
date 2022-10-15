@@ -18,6 +18,7 @@ class CQTelecom extends Platform
     protected $headers = [];
     protected $appKey;
     protected $appSecret;
+    protected $tenant;
     const USER_SAVE_URI = 'pmPerson/save';
     const USER_DEL_URI = 'pmPerson/delete';
     const USER_SET_URI = 'face/down';
@@ -32,6 +33,7 @@ class CQTelecom extends Platform
 
         $this->appKey = Arr::get($config, 'appKey');
         $this->appSecret = Arr::get($config, 'appSecret');
+        $this->tenant = Arr::get($config, 'tenant');
 
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -52,6 +54,7 @@ class CQTelecom extends Platform
         $this->uri = self::USER_SAVE_URI;
         $this->name = '编辑人员信息';
         $users = Arr::get($bodyPacket, 'users');
+
         foreach ($users as $user) {
             if (!Arr::get($user, 'uid')) {
                 $this->cancel = true;
@@ -87,6 +90,11 @@ class CQTelecom extends Platform
         $sn = Arr::get($bodyPacket, 'sn');
         if (is_array($sn)) {
             $sn = implode(',', $sn);
+        }
+
+        if (!$users) {
+            $this->cancel = true;
+            $this->errBox[] = '用户信息为空';
         }
 
         $this->queryBody = ['data' => $users, 'deviceSnList' => $sn, 'sync' => Arr::get($bodyPacket, 'sync') == 1 ? 1 : 0];
@@ -157,6 +165,10 @@ class CQTelecom extends Platform
         if (!$this->appSecret) {
             throw new InvalidArgumentException('appSecret不得为空');
         }
+
+        if (!$this->tenant) {
+            throw new InvalidArgumentException('tenant不得为空');
+        }
     }
 
     protected function generateSignature()
@@ -167,6 +179,7 @@ class CQTelecom extends Platform
         $this->headers['Timestamp'] = $timestamp;
         $this->headers['Sign'] = sha1($timestamp . $nonce . json_encode($this->queryBody) . $this->appKey . $this->appSecret);
         $this->headers['AppKey'] = $this->appKey;
+        $this->headers['Tenant'] = $this->tenant;
     }
 
     protected function formatResp(&$response)
