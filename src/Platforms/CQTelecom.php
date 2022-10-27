@@ -3,6 +3,7 @@
 namespace On3\DAP\Platforms;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use On3\DAP\Exceptions\InvalidArgumentException;
@@ -194,8 +195,11 @@ class CQTelecom extends Platform
 
     public function fire()
     {
+        $apiName = $this->name;
+        $hasResp = false;
         $httpMethod = $this->httpMethod;
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
         if ($this->cancel) {
             $errBox = $this->errBox;
             if (is_array($errBox)) {
@@ -207,8 +211,19 @@ class CQTelecom extends Platform
             throw new InvalidArgumentException($errMsg);
         } else {
             $queryBody = ['json' => $this->queryBody, 'headers' => $this->headers];
-            $rawResponse = $httpClient->$httpMethod($this->uri, $queryBody);
-            $contentStr = $rawResponse->getBody()->getContents();
+            try {
+                $rawResponse = $httpClient->$httpMethod($this->uri, $queryBody);
+                $contentStr = $rawResponse->getBody()->getContents();
+                $hasResp = true;
+            } catch (\Throwable $exception) {
+                if ($exception instanceof RequestException && ($hasResp = $exception->hasResponse())) {
+                    $rawResponse = $exception->getResponse();
+                    $contentStr = $rawResponse->getBody()->getContents();
+                } else {
+                    throw $exception;
+                }
+            }
+
             $contentArr = @json_decode($contentStr, true);
 
             try {
@@ -218,7 +233,7 @@ class CQTelecom extends Platform
 
             $this->cleanup();
 
-            if ($rawResponse->getStatusCode() === 200) {
+            if ($rawResponse->getStatusCode() === 200 || $hasResp) {
                 switch ($this->responseFormat) {
                     case self::RESP_FMT_JSON:
                         $responsePacket = $contentArr;
@@ -231,7 +246,7 @@ class CQTelecom extends Platform
                         return $rawResponse;
                 }
             } else {
-                throw new RequestFailedException('接口请求失败:' . $this->name);
+                throw new RequestFailedException('接口请求失败:' . $apiName);
             }
         }
     }
