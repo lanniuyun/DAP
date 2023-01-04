@@ -7,6 +7,7 @@ use On3\DAP\Platforms\AnJuBao;
 use On3\DAP\Platforms\CQTelecom;
 use On3\DAP\Platforms\FreeView;
 use On3\DAP\Platforms\JieShun;
+use On3\DAP\Platforms\KeXiang;
 use On3\DAP\Platforms\KeyTop;
 use On3\DAP\Platforms\UniUbi\WT;
 use On3\DAP\Platforms\UniUbi\WO;
@@ -74,6 +75,13 @@ class DAP
             $platformClass = WO::class;
         }
         $dap->platform = new $platformClass($config, $dev, $loadingToken);
+        return $dap;
+    }
+
+    static public function keXiang(array $config, bool $dev = false, bool $loadingToken = true): self
+    {
+        $dap = new self;
+        $dap->platform = new KeXiang($config, $dev, $loadingToken);
         return $dap;
     }
 
