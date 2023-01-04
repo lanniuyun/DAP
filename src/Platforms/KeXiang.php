@@ -110,12 +110,12 @@ class KeXiang extends Platform
         }
 
         try {
-            if (!$began = Arr::get($queryPacket, 'began')) {
+            if (!$begin = Arr::get($queryPacket, 'begin')) {
                 throw new \Exception('取默认开始时间');
             }
-            $began = Carbon::parse($began)->toDateString();
+            $begin = Carbon::parse($begin)->toDateString();
         } catch (\Throwable $exception) {
-            $began = now()->startOfMonth()->toDateString();
+            $begin = now()->startOfMonth()->toDateString();
         }
 
         try {
@@ -127,7 +127,7 @@ class KeXiang extends Platform
             $end = now()->endOfMonth()->toDateString();
         }
 
-        $this->queryBody = compact('sns', 'began', 'end');
+        $this->queryBody = compact('sns', 'begin', 'end');
         return $this;
     }
 
