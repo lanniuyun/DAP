@@ -131,6 +131,44 @@ class KeXiang extends Platform
         return $this;
     }
 
+    public function deviceFmtDetails(array $queryPacket = []): self
+    {
+        $this->uri = 'admin/release!rptdatasum.action';
+        $this->name = '水电表获取格式化读数信息';
+
+        $sns = Arr::get($queryPacket, 'SNs');
+
+        if (is_array($sns)) {
+            $sns = implode(',', $sns);
+        }
+
+        if (!$sns) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号不得为空';
+        }
+
+        try {
+            if (!$begin = Arr::get($queryPacket, 'begin')) {
+                throw new \Exception('取默认开始时间');
+            }
+            $begin = Carbon::parse($begin)->toDateString();
+        } catch (\Throwable $exception) {
+            $begin = now()->startOfMonth()->toDateString();
+        }
+
+        try {
+            if (!$end = Arr::get($queryPacket, 'end')) {
+                throw new \Exception('取默认结束时间');
+            }
+            $end = Carbon::parse($end)->toDateString();
+        } catch (\Throwable $exception) {
+            $end = now()->endOfMonth()->toDateString();
+        }
+
+        $this->queryBody = compact('sns', 'begin', 'end');
+        return $this;
+    }
+
     public function deviceInfos(array $queryPacket = []): self
     {
         $this->uri = 'reading.action';
