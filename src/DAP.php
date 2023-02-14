@@ -5,6 +5,7 @@ namespace On3\DAP;
 use Illuminate\Support\Arr;
 use On3\DAP\Platforms\AnJuBao;
 use On3\DAP\Platforms\CQTelecom;
+use On3\DAP\Platforms\E7;
 use On3\DAP\Platforms\FreeView;
 use On3\DAP\Platforms\JieShun;
 use On3\DAP\Platforms\KeXiang;
@@ -82,6 +83,13 @@ class DAP
     {
         $dap = new self;
         $dap->platform = new KeXiang($config, $dev, $loadingToken);
+        return $dap;
+    }
+
+    static public function E7(array $config, bool $dev = false, bool $loadingToken = true): self
+    {
+        $dap = new self;
+        $dap->platform = new E7($config, $dev, $loadingToken);
         return $dap;
     }
 
