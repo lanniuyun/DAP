@@ -11,6 +11,7 @@ class E7 extends Platform
 {
 
     protected $port = 60009;
+    protected $gID;
     protected $prefix = '/api/';
 
     public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
@@ -30,6 +31,11 @@ class E7 extends Platform
                 $this->port = $port;
             }
         }
+
+        if ($gID = Arr::get($config, 'gID')) {
+            $this->gID = $gID;
+        }
+
         $this->configValidator();
         $autoLogging && $this->injectLogObj();
     }
@@ -37,7 +43,11 @@ class E7 extends Platform
     protected function configValidator()
     {
         if (!$this->gateway) {
-            throw new InvalidArgumentException('服务网关不可为空');
+            throw new InvalidArgumentException('服务网关必填');
+        }
+
+        if (!$this->gID) {
+            throw new InvalidArgumentException('集团标识必填');
         }
     }
 
@@ -133,21 +143,11 @@ class E7 extends Platform
      * pageTotal int 总数
      * @return $this
      */
-    public function getParkList(array $queryPacket): self
+    public function getParkList(array $queryPacket = []): self
     {
         $this->uri = 'Park/GetByCustom';
         $this->name = '停车场基础信息列表';
-
-        $PageSize = intval(Arr::get($queryPacket, 'pageSize'));
-        $CurrentPage = intval(Arr::get($queryPacket, 'page'));
-        $OrderBy = strval(Arr::get($queryPacket, 'orderBy'));
-        $OrderType = boolval(Arr::get($queryPacket, 'orderType'));
-        $where = strval(Arr::get($queryPacket, 'where'));
-        $Append = strval(Arr::get($queryPacket, 'append'));
-        $TotalCount = intval(Arr::get($queryPacket, 'pageTotal'));
-
-        $this->queryBody = compact('PageSize', 'CurrentPage', 'OrderBy', 'OrderType', 'where', 'Append', 'TotalCount');
-
+        $this->queryBody = self::getPageQuery($queryPacket);
         return $this;
     }
 
@@ -156,7 +156,7 @@ class E7 extends Platform
      * id string 车场ID
      * @return $this
      */
-    public function getParkInfo(array $queryPacket): self
+    public function getParkInfo(array $queryPacket = []): self
     {
         $this->uri = 'Park/Get/';
         $this->name = '停车场基础信息详情';
@@ -164,11 +164,131 @@ class E7 extends Platform
 
         $parkID = Arr::get($queryPacket, 'id');
 
-        if (!$parkID) {
+        if (!$parkID || !is_numeric($parkID)) {
             $this->cancel = true;
-            $this->errBox[] = '车场ID不为空';
+            $this->errBox[] = '车场ID只能为数字类型不为空';
         }
+
         $this->uri .= $parkID;
+
         return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
+     * orderBy string 排序
+     * orderType bool 排序类型
+     * where string 筛选条件
+     * append string 附加值
+     * pageTotal int 总数
+     * @return $this
+     */
+    public function getGateControllerDeviceList(array $queryPacket = []): self
+    {
+        $this->uri = 'GateControllerDevice/GetByCustom';
+        $this->name = '开闸设备信息列表';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * id int 车闸ID
+     * @return $this
+     */
+    public function getGateControllerDeviceInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'GateControllerDevice/Get/';
+        $this->name = '开闸设备信息详情';
+        $this->httpMethod = self::METHOD_GET;
+
+        $deviceID = Arr::get($queryPacket, 'id');
+
+        if (!$deviceID || !is_numeric($deviceID)) {
+            $this->cancel = true;
+            $this->errBox[] = '车闸ID只能为数字类型不为空';
+        }
+
+        $this->uri .= $deviceID;
+
+        return $this;
+    }
+
+    public function storeExtendedService(array $queryPacket = []): self
+    {
+        $this->uri = 'TcmFixedMoney/Add';
+        $this->name = '月卡延期规则编辑';
+
+        $Id = Arr::get($queryPacket, 'id');
+
+        if (!$TcmId = Arr::get($queryPacket, 'tcmID')) {
+            $this->cancel = true;
+            $this->errBox[] = '卡类必填';
+        }
+
+        if (!$MonthMoney = floatval(Arr::get($queryPacket, 'monthMoney'))) {
+            $this->cancel = true;
+            $this->errBox[] = '月金额必填';
+        }
+
+        if (!$DayMoney = floatval(Arr::get($queryPacket, 'dayMoney'))) {
+            $this->cancel = true;
+            $this->errBox[] = '日金额必填';
+        }
+
+        if (!$DiscountRate = floatval(Arr::get($queryPacket, 'discountRate'))) {
+            $this->cancel = true;
+            $this->errBox[] = '抵扣额度必填';
+        }
+
+        if (!$OperatorName = floatval(Arr::get($queryPacket, 'operatorName'))) {
+            $this->cancel = true;
+            $this->errBox[] = '操作员必填';
+        }
+
+        $OperatorDate = now()->toDateTimeString();
+
+        if (!$Rid = floatval(Arr::get($queryPacket, 'rID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '标识号必填';
+        }
+
+        $Gid = $this->gID;
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
+     * orderBy string 排序
+     * orderType bool 排序类型
+     * where string 筛选条件
+     * append string 附加值
+     * pageTotal int 总数
+     * @return $this
+     */
+    public function getTcmList(array $queryPacket = []): self
+    {
+        $this->uri = 'Tcm/GetByCustom';
+        $this->name = '获取可用卡';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    protected function getPageQuery(array $queryPacket = []): array
+    {
+        $PageSize = intval(Arr::get($queryPacket, 'pageSize'));
+        $CurrentPage = intval(Arr::get($queryPacket, 'page'));
+        $OrderBy = strval(Arr::get($queryPacket, 'orderBy'));
+        $OrderType = boolval(Arr::get($queryPacket, 'orderType'));
+        $where = strval(Arr::get($queryPacket, 'where'));
+        $Append = strval(Arr::get($queryPacket, 'append'));
+        $TotalCount = intval(Arr::get($queryPacket, 'pageTotal'));
+
+        return compact('PageSize', 'CurrentPage', 'OrderBy', 'OrderType', 'where', 'Append', 'TotalCount');
     }
 }
