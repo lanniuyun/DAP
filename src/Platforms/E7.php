@@ -78,8 +78,8 @@ class E7 extends Platform
             $message = Arr::get($response, 'State.Describe');
         }
 
-        if (Arr::has($response, 'Models')) {
-            $dataPacket = Arr::get($response, 'Models');
+        if (Arr::has($response, 'Model')) {
+            $dataPacket = Arr::get($response, 'Model');
         } elseif (Arr::has($response, 'Records')) {
             $dataPacket = Arr::get($response, 'Records');
         }
@@ -243,10 +243,43 @@ class E7 extends Platform
         return $this;
     }
 
-    public function createExtendedService(array $queryPacket = []): self
+    /**
+     * @param array $queryPacket
+     * act 1:新建 2:编辑 0:删除
+     * tcmID string 卡类
+     * monthMoney float 月金额
+     * dayMoney float 日金额
+     * discountRate float 折扣
+     * operatorName string 操作人
+     * rID string 标识
+     * @return $this
+     */
+    public function modifyExtendedService(array $queryPacket = []): self
     {
-        $this->uri = 'TcmFixedMoney/Add';
-        $this->name = '月卡延期规则编辑';
+
+        $this->queryBody['Id'] = Arr::get($queryPacket, 'id');
+
+        switch (Arr::get($queryPacket, 'act')) {
+            case 0:
+                $this->uri = 'TcmFixedMoney/DeleteFunc';
+                $this->name = '月卡延期规则删除';
+
+                if (!$this->queryBody['Id']) {
+                    $this->cancel = true;
+                    $this->errBox[] = '月卡延期规则ID必填';
+                }
+                break;
+            case 2:
+                $this->uri = 'TcmFixedMoney/Modify';
+                $this->name = '月卡延期规则修改';
+                $this->httpMethod = self::METHOD_PUT;
+                break;
+            case 1:
+            default:
+                $this->uri = 'TcmFixedMoney/Add';
+                $this->name = '月卡延期规则编辑';
+                break;
+        }
 
         if (!$this->queryBody['TcmId'] = Arr::get($queryPacket, 'tcmID')) {
             $this->cancel = true;
@@ -276,10 +309,38 @@ class E7 extends Platform
         $this->queryBody['OperatorDate'] = now()->toDateTimeString();
         $this->queryBody['Gid'] = $this->gID;
 
-        if (!$this->queryBody['Rid'] = floatval(Arr::get($queryPacket, 'rID'))) {
+        if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
             $this->cancel = true;
             $this->errBox[] = '标识号必填';
         }
+
+        return $this;
+    }
+
+    public function getExtendedServiceInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'TcmFixedMoney/Get/';
+        $this->name = '月卡延期规则查询';
+        $this->httpMethod = self::METHOD_GET;
+
+        $serviceID = Arr::get($queryPacket, 'id');
+
+        if (!$serviceID || !is_numeric($serviceID)) {
+            $this->cancel = true;
+            $this->errBox[] = '月卡延期规则ID只能为数字类型不为空';
+        }
+
+        $this->uri .= $serviceID;
+
+        return $this;
+    }
+
+    public function getExtendedServiceList(array $queryPacket = []): self
+    {
+        $this->uri = 'TcmFixedMoney/GetByCustom';
+        $this->name = '月卡延期规则查询';
+
+        $this->queryBody = self::getPageQuery($queryPacket);
 
         return $this;
     }
