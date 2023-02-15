@@ -66,7 +66,34 @@ class E7 extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        $resultCode = 2;
+        $message = '';
+        $dataPacket = [];
+
+        if (Arr::has($response, 'Code')) {
+            $resultCode = Arr::get($response, 'Code');
+            $message = Arr::get($response, 'Describe');
+        } elseif (Arr::has($response, 'State')) {
+            $resultCode = Arr::get($response, 'State.Code');
+            $message = Arr::get($response, 'State.Describe');
+        }
+
+        if (Arr::has($response, 'Models')) {
+            $dataPacket = Arr::get($response, 'Models');
+        } elseif (Arr::has($response, 'Records')) {
+            $dataPacket = Arr::get($response, 'Records');
+        }
+
+        if (in_array($resultCode, [0, 1], true)) {
+            $resPacket = ['code' => 0, 'msg' => 'SUCCESS', 'data' => $dataPacket, 'raw_resp' => $response];
+        } else {
+            $resPacket = ['code' => 500, 'msg' => strval($message), 'data' => [], 'raw_resp' => $response];
+        }
+
+        if ($pagination = Arr::get($response, 'PageAttri')) {
+            $resPacket['pagination'] = $pagination;
+        }
+        $response = $resPacket;
     }
 
     public function cacheKey(): string
@@ -216,46 +243,43 @@ class E7 extends Platform
         return $this;
     }
 
-    public function storeExtendedService(array $queryPacket = []): self
+    public function createExtendedService(array $queryPacket = []): self
     {
         $this->uri = 'TcmFixedMoney/Add';
         $this->name = '月卡延期规则编辑';
 
-        $Id = Arr::get($queryPacket, 'id');
-
-        if (!$TcmId = Arr::get($queryPacket, 'tcmID')) {
+        if (!$this->queryBody['TcmId'] = Arr::get($queryPacket, 'tcmID')) {
             $this->cancel = true;
             $this->errBox[] = '卡类必填';
         }
 
-        if (!$MonthMoney = floatval(Arr::get($queryPacket, 'monthMoney'))) {
+        if (!$this->queryBody['MonthMoney'] = floatval(Arr::get($queryPacket, 'monthMoney'))) {
             $this->cancel = true;
             $this->errBox[] = '月金额必填';
         }
 
-        if (!$DayMoney = floatval(Arr::get($queryPacket, 'dayMoney'))) {
+        if (!$this->queryBody['DayMoney'] = floatval(Arr::get($queryPacket, 'dayMoney'))) {
             $this->cancel = true;
             $this->errBox[] = '日金额必填';
         }
 
-        if (!$DiscountRate = floatval(Arr::get($queryPacket, 'discountRate'))) {
+        if (!$this->queryBody['DiscountRate'] = floatval(Arr::get($queryPacket, 'discountRate'))) {
             $this->cancel = true;
             $this->errBox[] = '抵扣额度必填';
         }
 
-        if (!$OperatorName = floatval(Arr::get($queryPacket, 'operatorName'))) {
+        if (!$this->queryBody['OperatorName'] = Arr::get($queryPacket, 'operatorName')) {
             $this->cancel = true;
             $this->errBox[] = '操作员必填';
         }
 
-        $OperatorDate = now()->toDateTimeString();
+        $this->queryBody['OperatorDate'] = now()->toDateTimeString();
+        $this->queryBody['Gid'] = $this->gID;
 
-        if (!$Rid = floatval(Arr::get($queryPacket, 'rID'))) {
+        if (!$this->queryBody['Rid'] = floatval(Arr::get($queryPacket, 'rID'))) {
             $this->cancel = true;
             $this->errBox[] = '标识号必填';
         }
-
-        $Gid = $this->gID;
 
         return $this;
     }
