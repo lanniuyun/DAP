@@ -323,8 +323,12 @@ class E7 extends Platform
                 $this->errBox[] = '抵扣额度必填';
             }
 
+            if(!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')){
+                $this->errBox[] = 'rID必填';
+                $this->cancel = true;
+            }
+
             $this->queryBody['OperatorName'] = '超级管理员';
-            $this->queryBody['Rid'] = Arr::get($queryPacket, 'rID');
             $this->queryBody['OperatorDate'] = now()->toDateTimeString();
         }
 
@@ -400,7 +404,11 @@ class E7 extends Platform
                 $this->errBox[] = '名称不为空';
             }
 
-            $this->queryBody['Rid'] = Arr::get($queryPacket, 'rID');
+            if(!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')){
+                $this->errBox[] = 'rID必填';
+                $this->cancel = true;
+            }
+
             $this->queryBody['ParentId'] = intval(Arr::get($queryPacket, 'parentID'));
             $this->queryBody['Remark'] = Arr::get($queryPacket, 'remark');
         }
@@ -541,7 +549,10 @@ class E7 extends Platform
             }
 
             $staff['RollDate'] = now()->toDateTimeString();
-            $staff['Rid'] = strval(Arr::get($queryPacket, 'rID'));
+            if(!$staff['Rid'] = strval(Arr::get($queryPacket, 'rID'))){
+                $this->errBox[] = 'rID必填';
+                $this->cancel = true;
+            }
         }
 
         $staff['Gid'] = $this->gID;
@@ -609,13 +620,13 @@ class E7 extends Platform
 
                 if (!$deviceNos = Arr::get($queryPacket, 'deviceNos')) {
                     $this->cancel = true;
-                    $this->errBox[] = '开通设备:开通车道Rid必填';
+                    $this->errBox[] = '开通设备:开通车道No必填';
                 }
 
                 if (is_string($deviceNos)) {
                     if (!$deviceNos = array_filter(explode(',', $deviceNos))) {
                         $this->cancel = true;
-                        $this->errBox[] = '开通设备:开通车道Rid填写格式错误';
+                        $this->errBox[] = '开通设备:开通车道No填写格式错误';
                     }
                 }
 
@@ -637,6 +648,11 @@ class E7 extends Platform
                 if (!$StaffName = Arr::get($queryPacket, 'staffName')) {
                     $this->cancel = true;
                     $this->errBox[] = '人事姓名必填';
+                }
+
+                if (!$rID = Arr::get($queryPacket, 'rID')) {
+                    $this->cancel = true;
+                    $this->errBox[] = 'rID必填';
                 }
 
                 $parkIssue = [
@@ -665,7 +681,7 @@ class E7 extends Platform
                     'ProjectGids' => [$this->gID],
                     'OldAccountBlace' => floatval(Arr::get($queryPacket, 'oldBalance')),
                     'ID' => 0,
-                    'Rid' => Arr::get($queryPacket, 'rID'),
+                    'Rid' => $rID,
                     'IsLegal' => boolval(Arr::get($queryPacket, 'isLegal')),
                     'AuthDevice' => $deviceNos
                 ];
