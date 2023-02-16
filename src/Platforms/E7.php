@@ -600,6 +600,9 @@ class E7 extends Platform
      * isLegal bool 是否合法
      * rID string rid
      * isAutoActivate bool 是否自动激活 act =7
+     * amount float 支付的金额 act =4
+     * rebateAmount float 优惠的金额 act =4
+     * newTokenID string 换新的凭证主体/车牌 act =11
      * @return $this
      */
     public function operateToken(array $queryPacket = []): self
@@ -831,7 +834,59 @@ class E7 extends Platform
                 }
 
                 break;
+            case 3:
             case 4:
+            case 12:
+                $amount = floatval(Arr::get($queryBody, 'amount'));
+
+                $queryBody = [
+                    'OperMoney' => $amount,
+                    'PayType' => $payType,
+                    'Token' => $tokenID,
+                    'IsExistCard' => $isExistCard,
+                    'TokenType' => $tokenType,
+                    'UseModel' => $useModel,
+                    'Plate' => $tokenID,
+                    'TokenOper' => $act,
+                    'Remark' => $remark,
+                    'OperNo' => $operateNo,
+                    'OperName' => $operateName,
+                    'Redate' => now()->toDateTimeString(),
+                    'Gid' => $this->gID,
+                    'ProjectGids' => [$this->gID],
+                    'OldAccountBlace' => $oldBalance,
+                    'ID' => 0,
+                    'Rid' => $rID,
+                    'IsLegal' => $isLegal
+                ];
+
+                if ($act === 3) {
+                    if ($isAdmit) {
+                        $this->uri = 'TokenService/AdmitParkTopup';
+                        $this->name = '车牌凭证待审核充值';
+                    } else {
+                        $this->uri = 'TokenService/ParkTopup';
+                        $this->name = '车牌凭证充值';
+                    }
+                } elseif ($act === 4) {
+                    if ($isAdmit) {
+                        $this->uri = 'TokenService/AdmitParkDefer';
+                        $this->name = '车牌凭证待审核延期';
+                    } else {
+                        $this->uri = 'TokenService/ParkDefer';
+                        $this->name = '车牌凭证延期';
+                    }
+
+                    $rebateAmount = floatval(Arr::get($queryBody, 'rebateAmount'));
+
+                    $queryBody['DeferDate'] = $ended;
+                    $queryBody['EndDate'] = $began;
+                    $queryBody['FreeMoney'] = $rebateAmount;
+                } else {
+                    $this->uri = 'TokenService/ParkUnregister';
+                    $this->name = '车牌凭证注销';
+                    unset($queryBody['PayType']);
+                }
 
                 break;
             case 7:
@@ -864,16 +919,7 @@ class E7 extends Platform
             case 8:
             case 9:
             case 10:
-                if ($act === 8) {
-                    $this->uri = 'TokenService/ParkActivate';
-                    $this->name = '车牌凭证激活';
-                } elseif ($act === 9) {
-                    $this->uri = 'TokenService/ParkDoLock';
-                    $this->name = '车牌凭证锁定';
-                } else {
-                    $this->uri = 'TokenService/ParkUnLock';
-                    $this->name = '车牌凭证解锁';
-                }
+            case 11:
 
                 $queryBody = [
                     'Token' => $tokenID,
@@ -893,6 +939,27 @@ class E7 extends Platform
                     'Rid' => $rID,
                     'IsLegal' => $isLegal
                 ];
+
+                if ($act === 8) {
+                    $this->uri = 'TokenService/ParkActivate';
+                    $this->name = '车牌凭证激活';
+                } elseif ($act === 9) {
+                    $this->uri = 'TokenService/ParkDoLock';
+                    $this->name = '车牌凭证锁定';
+                } elseif ($act === 10) {
+                    $this->uri = 'TokenService/ParkUnLock';
+                    $this->name = '车牌凭证解锁';
+                } else {
+                    $this->uri = 'TokenService/ParkChangToken';
+                    $this->name = '车牌更换';
+
+                    if (!$newTokenID = Arr::get($queryBody, 'newTokenID')) {
+                        $this->cancel = true;
+                        $this->errBox[] = '新凭证主体不得为空';
+                    }
+
+                    $queryBody['NewToken'] = $queryBody['SerialNo'] = $newTokenID;
+                }
                 break;
             default:
                 $this->cancel = true;
