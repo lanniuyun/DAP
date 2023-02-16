@@ -4,6 +4,7 @@ namespace On3\DAP\Platforms;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Exceptions\RequestFailedException;
 
@@ -84,6 +85,8 @@ class E7 extends Platform
             $dataPacket = Arr::get($response, 'Records');
         }
 
+        $dataPacket = $dataPacket ?: [];
+
         if (in_array($resultCode, [0, 1], true)) {
             $resPacket = ['code' => 0, 'msg' => 'SUCCESS', 'data' => $dataPacket, 'raw_resp' => $response];
         } else {
@@ -126,7 +129,7 @@ class E7 extends Platform
                 $contentArr = $exception->getMessage();
             } finally {
                 try {
-                    $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+                    $this->logging->info($this->name, ['gateway' => $gateway, 'uri' => $uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
                 } catch (\Throwable $ignoredException) {
                 }
 
@@ -222,6 +225,25 @@ class E7 extends Platform
 
     /**
      * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
+     * orderBy string 排序
+     * orderType bool 排序类型
+     * where string 筛选条件
+     * append string 附加值
+     * pageTotal int 总数
+     * @return $this
+     */
+    public function getLaneList(array $queryPacket = []): self
+    {
+        $this->uri = 'Lane/GetByCustom';
+        $this->name = 'authDevice?';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
      * id int 车闸ID
      * @return $this
      */
@@ -250,7 +272,6 @@ class E7 extends Platform
      * monthMoney float 月金额
      * dayMoney float 日金额
      * discountRate float 折扣
-     * operatorName string 操作人
      * rID string 标识
      * @return $this
      */
@@ -259,7 +280,7 @@ class E7 extends Platform
 
         $this->queryBody['Id'] = Arr::get($queryPacket, 'id');
 
-        switch (Arr::get($queryPacket, 'act')) {
+        switch ($act = Arr::get($queryPacket, 'act')) {
             case 0:
                 $this->uri = 'TcmFixedMoney/DeleteFunc';
                 $this->name = '月卡延期规则删除';
@@ -281,38 +302,33 @@ class E7 extends Platform
                 break;
         }
 
-        if (!$this->queryBody['TcmId'] = Arr::get($queryPacket, 'tcmID')) {
-            $this->cancel = true;
-            $this->errBox[] = '卡类必填';
+        if ($act !== 0) {
+            if (!$this->queryBody['TcmId'] = Arr::get($queryPacket, 'tcmID')) {
+                $this->cancel = true;
+                $this->errBox[] = '卡类必填';
+            }
+
+            if (!$this->queryBody['MonthMoney'] = floatval(Arr::get($queryPacket, 'monthMoney'))) {
+                $this->cancel = true;
+                $this->errBox[] = '月金额必填';
+            }
+
+            if (!$this->queryBody['DayMoney'] = floatval(Arr::get($queryPacket, 'dayMoney'))) {
+                $this->cancel = true;
+                $this->errBox[] = '日金额必填';
+            }
+
+            if (!$this->queryBody['DiscountRate'] = floatval(Arr::get($queryPacket, 'discountRate'))) {
+                $this->cancel = true;
+                $this->errBox[] = '抵扣额度必填';
+            }
+
+            $this->queryBody['OperatorName'] = '超级管理员';
+            $this->queryBody['Rid'] = Arr::get($queryPacket, 'rID');
+            $this->queryBody['OperatorDate'] = now()->toDateTimeString();
         }
 
-        if (!$this->queryBody['MonthMoney'] = floatval(Arr::get($queryPacket, 'monthMoney'))) {
-            $this->cancel = true;
-            $this->errBox[] = '月金额必填';
-        }
-
-        if (!$this->queryBody['DayMoney'] = floatval(Arr::get($queryPacket, 'dayMoney'))) {
-            $this->cancel = true;
-            $this->errBox[] = '日金额必填';
-        }
-
-        if (!$this->queryBody['DiscountRate'] = floatval(Arr::get($queryPacket, 'discountRate'))) {
-            $this->cancel = true;
-            $this->errBox[] = '抵扣额度必填';
-        }
-
-        if (!$this->queryBody['OperatorName'] = Arr::get($queryPacket, 'operatorName')) {
-            $this->cancel = true;
-            $this->errBox[] = '操作员必填';
-        }
-
-        $this->queryBody['OperatorDate'] = now()->toDateTimeString();
         $this->queryBody['Gid'] = $this->gID;
-
-        if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
-            $this->cancel = true;
-            $this->errBox[] = '标识号必填';
-        }
 
         return $this;
     }
@@ -345,6 +361,88 @@ class E7 extends Platform
         return $this;
     }
 
+    public function modifyOrganization(array $queryPacket = []): self
+    {
+
+        $this->queryBody['ID'] = Arr::get($queryPacket, 'id');
+
+        switch ($act = Arr::get($queryPacket, 'act')) {
+            case 0:
+                $this->uri = 'Organization/DeleteFunc';
+                $this->name = '组织机构条件删除';
+
+                if (!$this->queryBody['ID']) {
+                    $this->cancel = true;
+                    $this->errBox[] = '标识号不得为空';
+                }
+
+                break;
+            case 2:
+                $this->uri = 'Organization/Modify';
+                $this->name = '组织机构修改';
+                $this->httpMethod = self::METHOD_PUT;
+                if (!$this->queryBody['ID'] = intval($this->queryBody['ID'])) {
+                    $this->cancel = true;
+                    $this->errBox[] = '编号必填';
+                }
+                break;
+            case 1:
+            default:
+                $this->uri = 'Organization/Add';
+                $this->name = '组织机构新增';
+                $this->queryBody['ID'] = intval($this->queryBody['ID']);
+                break;
+        }
+
+        if ($act !== 0) {
+            if (!$this->queryBody['Name'] = Arr::get($queryPacket, 'name')) {
+                $this->cancel = true;
+                $this->errBox[] = '名称不为空';
+            }
+
+            $this->queryBody['Rid'] = Arr::get($queryPacket, 'rID');
+            $this->queryBody['ParentId'] = intval(Arr::get($queryPacket, 'parentID'));
+            $this->queryBody['Remark'] = Arr::get($queryPacket, 'remark');
+        }
+
+        $this->queryBody['Gid'] = $this->gID;
+
+        return $this;
+    }
+
+    public function getOrganizationInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'Organization/Get/';
+        $this->name = '组织机构编号查询';
+        $this->httpMethod = self::METHOD_GET;
+
+        if (!$ID = Arr::get($queryPacket, 'id')) {
+            $this->cancel = true;
+            $this->errBox[] = '';
+        }
+        $this->uri .= $ID;
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
+     * orderBy string 排序
+     * orderType bool 排序类型
+     * where string 筛选条件
+     * append string 附加值
+     * pageTotal int 总数
+     * @return $this
+     */
+    public function getOrganizationList(array $queryPacket = []): self
+    {
+        $this->uri = 'Organization/GetByCustom';
+        $this->name = '组织机构查询';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
     /**
      * @param array $queryPacket
      * page int 页数
@@ -359,8 +457,253 @@ class E7 extends Platform
     public function getTcmList(array $queryPacket = []): self
     {
         $this->uri = 'Tcm/GetByCustom';
-        $this->name = '获取可用卡';
+        $this->name = '卡片列表';
         $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
+     * orderBy string 排序
+     * orderType bool 排序类型
+     * where string 筛选条件
+     * append string 附加值
+     * pageTotal int 总数
+     * @return $this
+     */
+    public function getStaffList(array $queryPacket = []): self
+    {
+        $this->uri = 'Staff/GetByCustom';
+        $this->name = '人事列表';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    public function modifyStaff(array $queryPacket = []): self
+    {
+
+        $ID = Arr::get($queryPacket, 'id');
+        $staff = [];
+        switch ($act = Arr::get($queryPacket, 'act')) {
+            case 0:
+                $this->uri = 'Staff/DeleteFunc';
+                $this->name = '人事条件删除';
+                if (!$ID) {
+                    $this->cancel = true;
+                    $this->errBox[] = '编号必填';
+                }
+                $staff['id'] = $ID;
+                break;
+            case 2:
+                $this->uri = 'StaffService/EditStaff';
+                $this->name = '人事修改';
+                if (!$ID) {
+                    $this->cancel = true;
+                    $this->errBox[] = '编号必填';
+                }
+                $staff['id'] = $ID;
+                break;
+            case 1:
+            default:
+                $this->uri = 'StaffService/EditStaff';
+                $this->name = '人事新增';
+                break;
+        }
+
+        if ($act !== 0) {
+            if (!$staff['StaffNo'] = Arr::get($queryPacket, 'staffNo')) {
+                $this->cancel = true;
+                $this->errBox[] = '人员编号必填';
+            }
+
+            if (!$staff['StaffName'] = Arr::get($queryPacket, 'staffName')) {
+                $this->cancel = true;
+                $this->errBox[] = '人员姓名必填';
+            }
+
+            if (!$staff['Birthday'] = Arr::get($queryPacket, 'birthday')) {
+                $this->cancel = true;
+                $this->errBox[] = '生日必填';
+            }
+
+            try {
+                $staff['Birthday'] = Carbon::parse($staff['Birthday'])->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '生日填写错误';
+            }
+
+            if (!$staff['OrganizationId'] = Arr::get($queryPacket, 'organizationID')) {
+                $this->cancel = true;
+                $this->errBox[] = '机构ID必填';
+            }
+
+            $staff['RollDate'] = now()->toDateTimeString();
+            $staff['Rid'] = strval(Arr::get($queryPacket, 'rID'));
+        }
+
+        $staff['Gid'] = $this->gID;
+        $this->queryBody['staff'] = $staff;
+        return $this;
+    }
+
+    public function getStaffInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'Staff/Get/';
+        $this->name = '人事编号查询';
+        $this->httpMethod = self::METHOD_GET;
+
+        if (!$ID = Arr::get($queryPacket, 'id')) {
+            $this->cancel = true;
+            $this->errBox[] = '';
+        }
+        $this->uri .= $ID;
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * type int 类型 0 车牌 1 卡片 2 ETC 3纸票 4二维码 5 生物
+     * oper int 操作类型 init=0,//初始化｜register=1,//发卡/批量发卡/登记｜modify=2,//改写/批量改写｜topup=3,//充值｜defer=4,//延期｜LossReport=5,//挂失｜unlost=6,//解挂｜suspend=7,//报停
+     * activate=8,//激活｜DoLock=9,//锁定｜unlock=10,//解锁｜replace=11,//换/补卡｜unregister=12,//退卡｜Audit=13,//审核通过｜UnAudit=14//审核未通过
+     * payType int 支付方式 0 混合多种方式, 1 银联闪付, 2 微信, 3 现金, 4 ETC, 5 支付宝, 6 银联钱包, 7 翼支付, 8 百度钱包, 9 POS机，10优惠券，11会员积分, 12 其他
+     * alreadyIn bool 不知道
+     * tokenID string 凭证主体/车牌
+     * balance float 余额
+     * useModel int 模式 写卡模式=0下载模式=1
+     * oldBalance float 原余额
+     * deviceNos string 车道no
+     * Remark string 备注
+     * began datetime 时间
+     * ended datetime 时间
+     * organizationID string 组织ID
+     * tcmID string 卡类ID
+     * staffNo string 人事编号
+     * staffName string 人事名
+     * phone string 电话
+     * address string 地址
+     * isExistCard bool 是否存在卡
+     * isLegal bool 是否合法
+     * rID string rid
+     * @return $this
+     */
+    public function issueToken(array $queryPacket = []): self
+    {
+        if (Arr::get($queryPacket, 'is_admit')) {
+            $this->uri = 'TokenService/AdmitIssue';
+            $this->name = '凭证审核发行';
+        } else {
+            $this->uri = 'TokenService/Issue';
+            $this->name = '凭证发行';
+        }
+
+        switch ($tokenType = Arr::get($queryPacket, 'type')) {
+            case 0:
+            case 2:
+                $this->queryBody['TokenType'] = $tokenType;
+                $tokenID = Arr::get($queryPacket, 'tokenID');
+                $payType = intval(Arr::get($queryPacket, 'payType'));
+                $tokenOper = intval(Arr::get($queryPacket, 'tokenOper'));
+
+                if (!$deviceNos = Arr::get($queryPacket, 'deviceNos')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '开通设备:开通车道Rid必填';
+                }
+
+                if (is_string($deviceNos)) {
+                    if (!$deviceNos = array_filter(explode(',', $deviceNos))) {
+                        $this->cancel = true;
+                        $this->errBox[] = '开通设备:开通车道Rid填写格式错误';
+                    }
+                }
+
+                if (!$tcmID = Arr::get($queryPacket, 'tcmID')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '卡类ID必填';
+                }
+
+                if (!$organizationID = Arr::get($queryPacket, 'organizationID')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '组织ID必填';
+                }
+
+                if (!$staffNo = Arr::get($queryPacket, 'staffNo')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人事编号必填';
+                }
+
+                if (!$StaffName = Arr::get($queryPacket, 'staffName')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人事姓名必填';
+                }
+
+                $parkIssue = [
+                    'TokenOper' => $tokenOper,
+                    'AlreadyIn' => boolval(Arr::get($queryPacket, 'alreadyIn')),
+                    'TokenId' => $tokenID,
+                    'SerialNo' => $tokenID,
+                    'StaffNo' => $staffNo,
+                    'StaffName' => $StaffName,
+                    'TelphoneNo' => strval(Arr::get($queryPacket, 'phone')),
+                    'Address' => strval(Arr::get($queryPacket, 'address')),
+                    'OrginazitionId' => $organizationID,
+                    'Tcm' => $tcmID,
+                    'PayType' => $payType,
+                    'AccountBalance' => floatval(Arr::get($queryPacket, 'balance')),
+                    'Token' => $tokenID,
+                    'IsExistCard' => boolval(Arr::get($queryPacket, 'isExistCard')),
+                    'TokenType' => $tokenType,
+                    'UseModel' => intval(Arr::get($queryPacket, 'useModel')),
+                    'Plate' => $tokenID,
+                    'Remark' => strval(Arr::get($queryPacket, 'remark')),
+                    'OperNo' => '999999',
+                    'OperName' => '超级管理员',
+                    'Redate' => now()->toDateTimeString(),
+                    'Gid' => $this->gID,
+                    'ProjectGids' => [$this->gID],
+                    'OldAccountBlace' => floatval(Arr::get($queryPacket, 'oldBalance')),
+                    'ID' => 0,
+                    'Rid' => Arr::get($queryPacket, 'rID'),
+                    'IsLegal' => boolval(Arr::get($queryPacket, 'isLegal')),
+                    'AuthDevice' => $deviceNos
+                ];
+
+                if ($rawBegan = Arr::get($queryPacket, 'began')) {
+                    try {
+                        $began = Carbon::parse($rawBegan)->toDateTimeString();
+                        $parkIssue['BeginDate'] = $began;
+                        $parkIssue['IsUpdateBeginDate'] = true;
+                    } catch (\Throwable $exception) {
+                        $this->cancel = true;
+                        $this->errBox[] = '起始日期填写错误';
+                    }
+                } else {
+                    $parkIssue['IsUpdateBeginDate'] = false;
+                }
+
+                if ($rawEnded = Arr::get($queryPacket, 'ended')) {
+                    try {
+                        $ended = Carbon::parse($rawEnded)->toDateTimeString();
+                        $parkIssue['EndDate'] = $ended;
+                        $parkIssue['IsUpdateEndDate'] = true;
+                    } catch (\Throwable $exception) {
+                        $this->cancel = true;
+                        $this->errBox[] = '起始日期填写错误';
+                    }
+                } else {
+                    $parkIssue['IsUpdateEndDate'] = false;
+                }
+
+                $this->queryBody['ParkIssue'] = $parkIssue;
+                break;
+            default:
+                $this->cancel = true;
+                $this->errBox[] = '仅支持车牌凭证';
+                break;
+        }
+
         return $this;
     }
 
