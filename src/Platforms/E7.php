@@ -323,7 +323,7 @@ class E7 extends Platform
                 $this->errBox[] = '抵扣额度必填';
             }
 
-            if(!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')){
+            if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
                 $this->errBox[] = 'rID必填';
                 $this->cancel = true;
             }
@@ -404,7 +404,7 @@ class E7 extends Platform
                 $this->errBox[] = '名称不为空';
             }
 
-            if(!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')){
+            if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
                 $this->errBox[] = 'rID必填';
                 $this->cancel = true;
             }
@@ -549,7 +549,7 @@ class E7 extends Platform
             }
 
             $staff['RollDate'] = now()->toDateTimeString();
-            if(!$staff['Rid'] = strval(Arr::get($queryPacket, 'rID'))){
+            if (!$staff['Rid'] = strval(Arr::get($queryPacket, 'rID'))) {
                 $this->errBox[] = 'rID必填';
                 $this->cancel = true;
             }
@@ -576,8 +576,9 @@ class E7 extends Platform
 
     /**
      * @param array $queryPacket
+     * is_admit bool 是否用审核
      * type int 类型 0 车牌 1 卡片 2 ETC 3纸票 4二维码 5 生物
-     * oper int 操作类型 init=0,//初始化｜register=1,//发卡/批量发卡/登记｜modify=2,//改写/批量改写｜topup=3,//充值｜defer=4,//延期｜LossReport=5,//挂失｜unlost=6,//解挂｜suspend=7,//报停
+     * act int 操作方式 init=0,//初始化｜register=1,//发卡/批量发卡/登记｜modify=2,//改写/批量改写｜topup=3,//充值｜defer=4,//延期｜LossReport=5,//挂失｜unlost=6,//解挂｜suspend=7,//报停
      * activate=8,//激活｜DoLock=9,//锁定｜unlock=10,//解锁｜replace=11,//换/补卡｜unregister=12,//退卡｜Audit=13,//审核通过｜UnAudit=14//审核未通过
      * payType int 支付方式 0 混合多种方式, 1 银联闪付, 2 微信, 3 现金, 4 ETC, 5 支付宝, 6 银联钱包, 7 翼支付, 8 百度钱包, 9 POS机，10优惠券，11会员积分, 12 其他
      * alreadyIn bool 不知道
@@ -598,27 +599,73 @@ class E7 extends Platform
      * isExistCard bool 是否存在卡
      * isLegal bool 是否合法
      * rID string rid
+     * isAutoActivate bool 是否自动激活 act =7
      * @return $this
      */
-    public function issueToken(array $queryPacket = []): self
+    public function operateToken(array $queryPacket = []): self
     {
-        if (Arr::get($queryPacket, 'is_admit')) {
-            $this->uri = 'TokenService/AdmitIssue';
-            $this->name = '凭证审核发行';
-        } else {
-            $this->uri = 'TokenService/Issue';
-            $this->name = '凭证发行';
+        $began = $ended = null;
+        $operateNo = '999999';
+        $operateName = '超级管理员';
+        $tokenType = Arr::get($queryPacket, 'type');
+        $isAdmit = Arr::get($queryPacket, 'is_admit');
+        $tokenID = Arr::get($queryPacket, 'tokenID');
+        $payType = intval(Arr::get($queryPacket, 'payType'));
+        $phone = strval(Arr::get($queryPacket, 'phone'));
+        $address = strval(Arr::get($queryPacket, 'address'));
+        $balance = floatval(Arr::get($queryPacket, 'balance'));
+        $isExistCard = boolval(Arr::get($queryPacket, 'isExistCard'));
+        $useModel = intval(Arr::get($queryPacket, 'useModel'));
+        $remark = strval(Arr::get($queryPacket, 'remark'));
+        $oldBalance = floatval(Arr::get($queryPacket, 'oldBalance'));
+        $isLegal = boolval(Arr::get($queryPacket, 'isLegal'));
+        $deviceNos = Arr::get($queryPacket, 'deviceNos');
+        $tcmID = Arr::get($queryPacket, 'tcmID');
+        $organizationID = Arr::get($queryPacket, 'organizationID');
+        $staffNo = Arr::get($queryPacket, 'staffNo');
+        $StaffName = Arr::get($queryPacket, 'staffName');
+        if ($rawBegan = Arr::get($queryPacket, 'began')) {
+            try {
+                $began = Carbon::parse($rawBegan)->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '起始日期填写错误';
+            }
         }
 
-        switch ($tokenType = Arr::get($queryPacket, 'type')) {
-            case 0:
-            case 2:
-                $this->queryBody['TokenType'] = $tokenType;
-                $tokenID = Arr::get($queryPacket, 'tokenID');
-                $payType = intval(Arr::get($queryPacket, 'payType'));
-                $tokenOper = intval(Arr::get($queryPacket, 'tokenOper'));
+        if ($rawEnded = Arr::get($queryPacket, 'ended')) {
+            try {
+                $ended = Carbon::parse($rawEnded)->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '截止日期填写错误';
+            }
+        }
 
-                if (!$deviceNos = Arr::get($queryPacket, 'deviceNos')) {
+        if (!$rID = Arr::get($queryPacket, 'rID')) {
+            $this->cancel = true;
+            $this->errBox[] = 'rID必填';
+        }
+
+        if (!in_array($tokenType, [0, 2], true)) {
+            $this->cancel = true;
+            $this->errBox[] = '仅支持车牌/ETC凭证';
+        }
+
+        $queryBody = [];
+
+        switch ($act = intval(Arr::get($queryPacket, 'act'))) {
+            case 1:
+
+                if ($isAdmit) {
+                    $this->uri = 'TokenService/AdmitIssue';
+                    $this->name = '凭证审核发行';
+                } else {
+                    $this->uri = 'TokenService/Issue';
+                    $this->name = '凭证发行';
+                }
+
+                if (!$deviceNos) {
                     $this->cancel = true;
                     $this->errBox[] = '开通设备:开通车道No必填';
                 }
@@ -630,96 +677,230 @@ class E7 extends Platform
                     }
                 }
 
-                if (!$tcmID = Arr::get($queryPacket, 'tcmID')) {
+                if (!$tcmID) {
                     $this->cancel = true;
                     $this->errBox[] = '卡类ID必填';
                 }
 
-                if (!$organizationID = Arr::get($queryPacket, 'organizationID')) {
+                if (!$organizationID) {
                     $this->cancel = true;
                     $this->errBox[] = '组织ID必填';
                 }
 
-                if (!$staffNo = Arr::get($queryPacket, 'staffNo')) {
+                if (!$staffNo) {
                     $this->cancel = true;
                     $this->errBox[] = '人事编号必填';
                 }
 
-                if (!$StaffName = Arr::get($queryPacket, 'staffName')) {
+                if (!$StaffName) {
                     $this->cancel = true;
                     $this->errBox[] = '人事姓名必填';
                 }
 
-                if (!$rID = Arr::get($queryPacket, 'rID')) {
-                    $this->cancel = true;
-                    $this->errBox[] = 'rID必填';
-                }
-
                 $parkIssue = [
-                    'TokenOper' => $tokenOper,
+                    'TokenOper' => $act,
                     'AlreadyIn' => boolval(Arr::get($queryPacket, 'alreadyIn')),
                     'TokenId' => $tokenID,
                     'SerialNo' => $tokenID,
                     'StaffNo' => $staffNo,
                     'StaffName' => $StaffName,
-                    'TelphoneNo' => strval(Arr::get($queryPacket, 'phone')),
-                    'Address' => strval(Arr::get($queryPacket, 'address')),
+                    'TelphoneNo' => $phone,
+                    'Address' => $address,
                     'OrginazitionId' => $organizationID,
                     'Tcm' => $tcmID,
                     'PayType' => $payType,
-                    'AccountBalance' => floatval(Arr::get($queryPacket, 'balance')),
+                    'AccountBalance' => $balance,
                     'Token' => $tokenID,
-                    'IsExistCard' => boolval(Arr::get($queryPacket, 'isExistCard')),
+                    'IsExistCard' => $isExistCard,
                     'TokenType' => $tokenType,
-                    'UseModel' => intval(Arr::get($queryPacket, 'useModel')),
+                    'UseModel' => $useModel,
                     'Plate' => $tokenID,
-                    'Remark' => strval(Arr::get($queryPacket, 'remark')),
-                    'OperNo' => '999999',
-                    'OperName' => '超级管理员',
+                    'Remark' => $remark,
+                    'OperNo' => $operateNo,
+                    'OperName' => $operateName,
                     'Redate' => now()->toDateTimeString(),
                     'Gid' => $this->gID,
                     'ProjectGids' => [$this->gID],
-                    'OldAccountBlace' => floatval(Arr::get($queryPacket, 'oldBalance')),
+                    'OldAccountBlace' => $oldBalance,
                     'ID' => 0,
                     'Rid' => $rID,
-                    'IsLegal' => boolval(Arr::get($queryPacket, 'isLegal')),
+                    'IsLegal' => $isLegal,
                     'AuthDevice' => $deviceNos
                 ];
 
-                if ($rawBegan = Arr::get($queryPacket, 'began')) {
-                    try {
-                        $began = Carbon::parse($rawBegan)->toDateTimeString();
-                        $parkIssue['BeginDate'] = $began;
-                        $parkIssue['IsUpdateBeginDate'] = true;
-                    } catch (\Throwable $exception) {
-                        $this->cancel = true;
-                        $this->errBox[] = '起始日期填写错误';
-                    }
+                if ($began) {
+                    $parkIssue['BeginDate'] = $began;
+                    $parkIssue['IsUpdateBeginDate'] = true;
                 } else {
                     $parkIssue['IsUpdateBeginDate'] = false;
                 }
 
-                if ($rawEnded = Arr::get($queryPacket, 'ended')) {
-                    try {
-                        $ended = Carbon::parse($rawEnded)->toDateTimeString();
-                        $parkIssue['EndDate'] = $ended;
-                        $parkIssue['IsUpdateEndDate'] = true;
-                    } catch (\Throwable $exception) {
-                        $this->cancel = true;
-                        $this->errBox[] = '起始日期填写错误';
-                    }
+                if ($ended) {
+                    $parkIssue['EndDate'] = $ended;
+                    $parkIssue['IsUpdateEndDate'] = true;
                 } else {
                     $parkIssue['IsUpdateEndDate'] = false;
                 }
 
-                $this->queryBody['ParkIssue'] = $parkIssue;
+                $queryBody['ParkIssue'] = $parkIssue;
+                break;
+            case 2:
+
+                if ($isAdmit) {
+                    $this->uri = 'TokenService/AdmitParkModify';
+                    $this->name = '车牌凭证待审核修改';
+                } else {
+                    $this->uri = 'TokenService/ParkModify';
+                    $this->name = '车牌凭证修改';
+                }
+
+                if (!$deviceNos) {
+                    $this->cancel = true;
+                    $this->errBox[] = '开通设备:开通车道No必填';
+                }
+
+                if (is_string($deviceNos)) {
+                    if (!$deviceNos = array_filter(explode(',', $deviceNos))) {
+                        $this->cancel = true;
+                        $this->errBox[] = '开通设备:开通车道No填写格式错误';
+                    }
+                }
+
+                if (!$tcmID) {
+                    $this->cancel = true;
+                    $this->errBox[] = '卡类ID必填';
+                }
+
+                if (!$organizationID) {
+                    $this->cancel = true;
+                    $this->errBox[] = '组织ID必填';
+                }
+
+                if (!$staffNo) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人事编号必填';
+                }
+
+                if (!$StaffName) {
+                    $this->cancel = true;
+                    $this->errBox[] = '人事姓名必填';
+                }
+
+                $queryBody = [
+                    'TokenOper' => $act,
+                    'TokenId' => $tokenID,
+                    'SerialNo' => $tokenID,
+                    'StaffNo' => $staffNo,
+                    'StaffName' => $StaffName,
+                    'TelphoneNo' => $phone,
+                    'Address' => $address,
+                    'OrginazitionId' => $organizationID,
+                    'Tcm' => $tcmID,
+                    'PayType' => $payType,
+                    'AccountBalance' => $balance,
+                    'Token' => $tokenID,
+                    'IsExistCard' => $isExistCard,
+                    'TokenType' => $tokenType,
+                    'UseModel' => $useModel,
+                    'Plate' => $tokenID,
+                    'Remark' => $remark,
+                    'OperNo' => $operateNo,
+                    'OperName' => $operateName,
+                    'Redate' => now()->toDateTimeString(),
+                    'Gid' => $this->gID,
+                    'ProjectGids' => [$this->gID],
+                    'OldAccountBlace' => $oldBalance,
+                    'ID' => 0,
+                    'Rid' => $rID,
+                    'IsLegal' => $isLegal,
+                    'AuthDevice' => $deviceNos
+                ];
+
+                if ($began) {
+                    $queryBody['BeginDate'] = $began;
+                    $queryBody['IsUpdateBeginDate'] = true;
+                } else {
+                    $queryBody['IsUpdateBeginDate'] = false;
+                }
+
+                if ($ended) {
+                    $queryBody['EndDate'] = $ended;
+                    $queryBody['IsUpdateEndDate'] = true;
+                } else {
+                    $queryBody['IsUpdateEndDate'] = false;
+                }
+
+                break;
+            case 4:
+
+                break;
+            case 7:
+                $this->uri = 'TokenService/ParkSuspend';
+                $this->name = '车牌凭证报停';
+                $isAutoActivate = boolval(Arr::get($queryBody, 'isAutoActivate'));
+
+                $queryBody = [
+                    'IsAutoActivate' => $isAutoActivate,
+                    'SuspendStartDate' => $began,
+                    'SuspendEndDate' => $ended,
+                    'Token' => $tokenID,
+                    'IsExistCard' => $isExistCard,
+                    'TokenType' => $tokenType,
+                    'UseModel' => $useModel,
+                    'Plate' => $tokenID,
+                    'TokenOper' => $act,
+                    'Remark' => $remark,
+                    'OperNo' => $operateNo,
+                    'OperName' => $operateName,
+                    'Redate' => now()->toDateTimeString(),
+                    'Gid' => $this->gID,
+                    'ProjectGids' => [$this->gID],
+                    'OldAccountBlace' => $oldBalance,
+                    'ID' => 0,
+                    'Rid' => $rID,
+                    'IsLegal' => $isLegal
+                ];
+                break;
+            case 8:
+            case 9:
+            case 10:
+                if ($act === 8) {
+                    $this->uri = 'TokenService/ParkActivate';
+                    $this->name = '车牌凭证激活';
+                } elseif ($act === 9) {
+                    $this->uri = 'TokenService/ParkDoLock';
+                    $this->name = '车牌凭证锁定';
+                } else {
+                    $this->uri = 'TokenService/ParkUnLock';
+                    $this->name = '车牌凭证解锁';
+                }
+
+                $queryBody = [
+                    'Token' => $tokenID,
+                    'IsExistCard' => $isExistCard,
+                    'TokenType' => $tokenType,
+                    'UseModel' => $useModel,
+                    'Plate' => $tokenID,
+                    'TokenOper' => $act,
+                    'Remark' => $remark,
+                    'OperNo' => $operateNo,
+                    'OperName' => $operateName,
+                    'Redate' => now()->toDateTimeString(),
+                    'Gid' => $this->gID,
+                    'ProjectGids' => [$this->gID],
+                    'OldAccountBlace' => $oldBalance,
+                    'ID' => 0,
+                    'Rid' => $rID,
+                    'IsLegal' => $isLegal
+                ];
                 break;
             default:
                 $this->cancel = true;
-                $this->errBox[] = '仅支持车牌凭证';
+                $this->errBox[] = '不支持的操作';
                 break;
         }
 
+        $this->queryBody = $queryBody;
         return $this;
     }
 
