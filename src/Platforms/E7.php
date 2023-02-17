@@ -1234,6 +1234,11 @@ class E7 extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * ver int 1 计费1 2 计费2
+     * @return $this
+     */
     public function calculateOrderAmount(array $queryPacket = []): self
     {
 
@@ -1297,6 +1302,64 @@ class E7 extends Platform
         $this->queryBody['IsLegal'] = boolval(Arr::get($queryPacket, 'isLegal'));
         $this->queryBody['Gid'] = $this->gID;
         $this->queryBody['ID'] = 0;
+        return $this;
+    }
+
+    public function getOperationLogList(array $queryPacket = []): self
+    {
+        $this->uri = 'OperationMark/GetByCustom';
+        $this->name = '数据推送查询';
+        $this->queryBody = $this->getPageQuery($queryPacket);
+        return $this;
+    }
+
+    public function deleteOperationLog(array $queryPacket = []): self
+    {
+        $this->uri = 'OperationMark/Delete/';
+        $this->name = '推送数据删除';
+        $this->httpMethod = self::METHOD_DELETE;
+
+        if (!$ID = Arr::get($queryPacket, 'id')) {
+            $this->cancel = true;
+            $this->errBox[] = 'id不可为空';
+        }
+        $this->uri .= $ID;
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * subSystem int vms=1 dms =2
+     * act int 1 开 2 关 3 锁 4 正常 5 常开 6 常闭
+     * rID string 车道RID？
+     * lanID string 道闸RID
+     * remark string 备注
+     * isLegal bool 是否合法
+     * @return $this
+     */
+    public function deviceRemoteControl(array $queryPacket = []): self
+    {
+
+        $this->uri = 'Monitoring/RemoteOrder';
+        $this->name = '远程开闸';
+
+        $this->queryBody['SubSystem'] = intval(Arr::get($queryPacket, 'subSystem'));
+        if ($this->queryBody['SubSystem'] !== 2) {
+            $this->queryBody['SubSystem'] = 1;
+        }
+
+        if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
+            $this->cancel = true;
+            $this->errBox[] = 'rID必填';
+        }
+
+        $this->queryBody['Order'] = intval(Arr::get($queryPacket, 'act'));
+        $this->queryBody['OrderDate'] = now()->toDateTimeString();
+        $this->queryBody['DevId'] = strval(Arr::get($queryPacket, 'laneID'));
+        $this->queryBody['OrderRemark'] = strval(Arr::get($queryPacket, 'remark'));
+        $this->queryBody['IsLogHandGate'] = true;
+        $this->queryBody['Gid'] = $this->gID;
+        $this->queryBody['IsLegal'] = boolval(Arr::get($queryPacket, 'isLegal'));
         return $this;
     }
 
@@ -1405,6 +1468,6 @@ class E7 extends Platform
                 break;
         }
 
-        return $this->fire();
+        return $this;
     }
 }
