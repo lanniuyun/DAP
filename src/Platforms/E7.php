@@ -971,6 +971,264 @@ class E7 extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * act int 1:录入 0:删除
+     * inOrOut int 1:进 2:出
+     * @return $this
+     */
+    public function inputVehicleRecord(array $queryPacket = []): self
+    {
+
+        if (!$tokenID = strval(Arr::get($queryPacket, 'tokenID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '凭证号必填';
+        }
+
+        if (!$parkID = strval(Arr::get($queryPacket, 'parkID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场ID必填';
+        }
+
+        if (Arr::get($queryPacket, 'act') === 0) {
+            if (Arr::get($queryPacket, 'inOrOut') === 2) {
+                $this->cancel = true;
+                $this->errBox[] = '出场记录不可删除';
+            } else {
+                $this->uri = 'InVehicle/DeleteFunc';
+                $this->name = '删除入场记录';
+
+                $this->queryBody = ['TokenNo' => $tokenID, 'ParkId' => $parkID];
+            }
+        } else {
+
+            if (!$parkingID = strval(Arr::get($queryPacket, 'parkingID'))) {
+                $this->cancel = true;
+                $this->errBox[] = '车场标识ID必填';
+            }
+
+            $rawBody = [
+                'ID' => 0,
+                'ParkingId' => $parkingID,
+                'ParkId' => $parkID,
+                'TokenNo' => $tokenID,
+                'TokenType' => intval(Arr::get($queryPacket, 'type')),
+                'TcmId' => strval(Arr::get($queryPacket, 'tcmID')),
+                'TcmName' => strval(Arr::get($queryPacket, 'tcmName')),
+                'StaffNo' => strval(Arr::get($queryPacket, 'staffNo')),
+                'StaffName' => strval(Arr::get($queryPacket, 'staffName')),
+                'RegPlate' => $tokenID,
+                'InAutoPlate' => $tokenID,
+                'VehicleBand' => strval(Arr::get($queryPacket, 'vehicleBand')),
+                'VehicleColor' => strval(Arr::get($queryPacket, 'vehicleColor')),
+                'VehicleCategory' => strval(Arr::get($queryPacket, 'vehicleCategory')),
+                'PlateColor' => strval(Arr::get($queryPacket, 'vehicleColor')),
+                'InLaneId' => strval(Arr::get($queryPacket, 'inLaneId')),
+                'InLaneName' => strval(Arr::get($queryPacket, 'inLaneName')),
+                'InTime' => strval(Arr::get($queryPacket, 'inTime')),
+                'InPicture' => strval(Arr::get($queryPacket, 'inPicture')),
+                'InPicture2' => strval(Arr::get($queryPacket, 'inPicture2')),
+                'InOperatorId' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'InOperatorName' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'InType' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'InFlag' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'LotFullRemark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'State' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'PayMark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'LastChargeTime' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'GroupLotState' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'ReservationNo' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'InRemark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'TerminalId' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'TerminalName' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'Province' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'Gid' => $this->gID,
+                'Rid' => strval(Arr::get($queryPacket, 'rID'))
+            ];
+
+            if (Arr::get($queryPacket, 'inOrOut') === 2) {
+                $this->uri = 'OutVehicle/Adds';
+                $this->name = '车辆出场';
+
+                $rawBody['OutAutoPlate'] = $tokenID;
+                $rawBody['OutLaneName'] = strval(Arr::get($queryPacket, 'outLaneName'));
+                $rawBody['OutTime'] = strval(Arr::get($queryPacket, 'outTime'));
+                $rawBody['OutPicture'] = strval(Arr::get($queryPacket, 'outPicture'));
+                $rawBody['OutPicture2'] = strval(Arr::get($queryPacket, 'outPicture2'));
+                $rawBody['OutPictureStaff'] = strval(Arr::get($queryPacket, 'outPictureStaff'));
+                $rawBody['OutOperatorId'] = strval(Arr::get($queryPacket, 'outOperatorId'));
+                $rawBody['OutOperatorName'] = strval(Arr::get($queryPacket, 'outOperatorName'));
+                $rawBody['OutType'] = intval(Arr::get($queryPacket, 'outType'));
+                $rawBody['OutFlag'] = intval(Arr::get($queryPacket, 'outFlag'));
+                $rawBody['OutLaneId'] = strval(Arr::get($queryPacket, 'outLaneId'));
+                $rawBody['OutRemark'] = strval(Arr::get($queryPacket, 'outRemark'));
+                $rawBody['StayLasts'] = strval(Arr::get($queryPacket, 'stayLasts'));
+                $rawBody['TranAmount'] = floatval(Arr::get($queryPacket, 'tranAmount'));
+                $rawBody['AccountPayAmount'] = floatval(Arr::get($queryPacket, 'accountPayAmount'));
+                $rawBody['CashAmount'] = floatval(Arr::get($queryPacket, 'cashAmount'));
+                $rawBody['FreeAmount'] = floatval(Arr::get($queryPacket, 'freeAmount'));
+                $rawBody['DeductedAmount'] = floatval(Arr::get($queryPacket, 'deductedAmount'));
+                $rawBody['DeductedHours'] = floatval(Arr::get($queryPacket, 'deductedHours'));
+                $rawBody['DeductedHoursAmount'] = floatval(Arr::get($queryPacket, 'deductedHoursAmount'));
+
+                $this->queryBody = $rawBody;
+            } else {
+                $this->uri = 'VehicleTrafficService/VehicleEnter';
+                $this->name = '车辆入场';
+
+                $this->queryBody['InVehicle'] = $rawBody;
+                $this->queryBody['ParkZone'] = intval(Arr::get($queryPacket, 'parkZone'));
+                $this->queryBody['Append'] = strval(Arr::get($queryPacket, 'Append'));
+                $this->queryBody['IsLegal'] = boolval(Arr::get($queryPacket, 'isLegal'));
+                $this->queryBody['Rid'] = strval(Arr::get($queryPacket, 'rID'));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * inOrOut 2出场 1入场
+     * @return $this
+     */
+    public function getVehicleRecordList(array $queryPacket = []): self
+    {
+
+        if (Arr::get($queryPacket, 'inOrOut') === 2) {
+            $this->uri = 'OutVehicle/GetByCustom';
+            $this->name = '已出车辆查询';
+        } else {
+            $this->uri = 'InVehicle/GetByCustom';
+            $this->name = '场内记录查询';
+        }
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * @return $this
+     */
+    public function getTokenList(array $queryPacket = []): self
+    {
+        $this->uri = 'IssueParkView/GetByCustom';
+        $this->name = '车场凭证发行报表';
+        $this->queryBody = self::getPageQuery($queryPacket);
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * type int 0 当日 1 当月 2 当年
+     * id int 记录ID
+     * rID string rID
+     * isLegal bool 是否合法
+     * @return $this
+     */
+    public function getParkOrderList(array $queryPacket = []): self
+    {
+        $this->uri = 'RpCommonView/GetRpTimeTollTotal';
+        $this->name = '缴费记录日报表、月报表、年报表查询';
+
+        $this->queryBody = [
+            'TollType' => intval(Arr::get($queryPacket, 'type')),
+            'Gid' => $this->gID,
+            'Currdate' => now()->toDateTimeString(),
+            'ID' => intval(Arr::get($queryPacket, 'id')),
+            'Rid' => strval(Arr::get($queryPacket, 'rID')),
+            'IsLegal' => boolval(Arr::get($queryPacket, 'isLegal'))
+        ];
+
+        return $this;
+    }
+
+    public function syncParkOrder(array $queryPacket = []): self
+    {
+        $this->uri = 'TollRecord/Add';
+        $this->name = '增加缴费记录';
+
+        if (!$this->queryBody['ParkingId'] = Arr::get($queryPacket, 'parkingID')) {
+            $this->cancel = true;
+            $this->errBox[] = '停车标识码必填';
+        }
+
+        if (!$this->queryBody['ParkId'] = Arr::get($queryPacket, 'parkID')) {
+            $this->cancel = true;
+            $this->errBox[] = '车场标识码必填';
+        }
+
+        if (!$this->queryBody['TranId'] = Arr::get($queryPacket, 'tranID')) {
+            $this->cancel = true;
+            $this->errBox[] = '交易流水号必填';
+        }
+
+        if (!$this->queryBody['TokenId'] = Arr::get($queryPacket, 'tokenID')) {
+            $this->cancel = true;
+            $this->errBox[] = '凭证号必填';
+        }
+
+        if (!$this->queryBody['TcmId'] = Arr::get($queryPacket, 'tcmID')) {
+            $this->cancel = true;
+            $this->errBox[] = '卡类ID必填';
+        }
+
+        if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
+            $this->cancel = true;
+            $this->errBox[] = 'rID必填';
+        }
+
+        $this->queryBody['TcmName'] = Arr::get($queryPacket, 'tcmName');
+
+        if (!$rawBegan = Arr::get($queryPacket, 'began')) {
+            $this->cancel = true;
+            $this->errBox[] = '计费起始时间必填';
+        }
+
+        try {
+            $this->queryBody['TollBeginTime'] = Carbon::parse($rawBegan)->toDateTimeString();
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '计费起始时间填写错误';
+        }
+
+        if (!$rawEnded = Arr::get($queryPacket, 'ended')) {
+            $this->cancel = true;
+            $this->errBox[] = '截止起始时间必填';
+        }
+
+        try {
+            $this->queryBody['TollEndTime'] = Carbon::parse($rawEnded)->toDateTimeString();
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '计费截止时间填写错误';
+        }
+
+        $this->queryBody['TranAmount'] = floatval(Arr::get($queryPacket, 'tranAmount'));
+        $this->queryBody['AccountPayAmount'] = floatval(Arr::get($queryPacket, 'accountPayAmount'));
+        $this->queryBody['CashAmount'] = floatval(Arr::get($queryPacket, 'cashAmount'));
+        $this->queryBody['FreeAmount'] = floatval(Arr::get($queryPacket, 'freeAmount'));
+        $this->queryBody['DeductedAmount'] = floatval(Arr::get($queryPacket, 'deductedAmount'));
+        $this->queryBody['DeductedHours'] = floatval(Arr::get($queryPacket, 'deductedHours'));
+        $this->queryBody['DeductedHoursAmount'] = floatval(Arr::get($queryPacket, 'deductedHoursAmount'));
+        $this->queryBody['TollType'] = intval(Arr::get($queryPacket, 'payType'));
+        $this->queryBody['TollSubType'] = intval(Arr::get($queryPacket, 'subPayType'));
+        $this->queryBody['TollOperId'] = strval(Arr::get($queryPacket, 'operatorID'));
+        $this->queryBody['TollOperName'] = strval(Arr::get($queryPacket, 'operatorName'));
+        $this->queryBody['TollTime'] = strval(Arr::get($queryPacket, 'orderTime'));
+        $this->queryBody['TerminalId'] = strval(Arr::get($queryPacket, 'terminalID'));
+        $this->queryBody['TerminalName'] = strval(Arr::get($queryPacket, 'terminalName'));
+        $this->queryBody['TerminalType'] = strval(Arr::get($queryPacket, 'terminalType'));
+        $this->queryBody['TAC'] = strval(Arr::get($queryPacket, 'TAC'));
+        $this->queryBody['Remark'] = strval(Arr::get($queryPacket, 'remark'));
+        $this->queryBody['InvoiceOrderNo'] = strval(Arr::get($queryPacket, 'invoiceOrderNo'));
+        $this->queryBody['InvoiceState'] = strval(Arr::get($queryPacket, 'invoiceState'));
+        $this->queryBody['InvoiceMode'] = strval(Arr::get($queryPacket, 'invoiceMode'));
+        $this->queryBody['InvoiceData'] = strval(Arr::get($queryPacket, 'invoiceData'));
+        $this->queryBody['Gid'] = $this->gID;
+        return $this;
+    }
+
     protected function getPageQuery(array $queryPacket = []): array
     {
         $PageSize = intval(Arr::get($queryPacket, 'pageSize'));
