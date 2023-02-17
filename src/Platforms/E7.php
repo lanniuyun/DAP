@@ -5,6 +5,7 @@ namespace On3\DAP\Platforms;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Exceptions\RequestFailedException;
 
@@ -1299,7 +1300,7 @@ class E7 extends Platform
         return $this;
     }
 
-    protected function getPageQuery(array $queryPacket = []): array
+    public function getPageQuery(array $queryPacket = []): array
     {
         $PageSize = intval(Arr::get($queryPacket, 'pageSize'));
         $CurrentPage = intval(Arr::get($queryPacket, 'page'));
@@ -1310,5 +1311,44 @@ class E7 extends Platform
         $TotalCount = intval(Arr::get($queryPacket, 'pageTotal'));
 
         return compact('PageSize', 'CurrentPage', 'OrderBy', 'OrderType', 'where', 'Append', 'TotalCount');
+    }
+
+    public function request(string $uri, string $name, $body = null, string $method = 'post')
+    {
+        $this->uri = $uri;
+        $this->name = $name;
+
+        if (is_string($body)) {
+            $body = Arr::wrap($body);
+        } elseif ($body instanceof Collection) {
+            $body = $body->toArray();
+        } elseif (is_array($body)) {
+        } else {
+            $body = [];
+        }
+
+        if (!is_array($body)) {
+            $this->cancel = true;
+            $this->errBox[] = '请求体不是可用的数据类型';
+        }
+
+        $this->queryBody = $body;
+
+        switch (strtolower($method)) {
+            case self::METHOD_GET:
+                $this->httpMethod = self::METHOD_GET;
+                break;
+            case self::METHOD_PUT:
+                $this->httpMethod = self::METHOD_PUT;
+                break;
+            case self::METHOD_DELETE:
+                $this->httpMethod = self::METHOD_DELETE;
+                break;
+            case self::METHOD_POST:
+            default:
+                break;
+        }
+
+        return $this->fire();
     }
 }
