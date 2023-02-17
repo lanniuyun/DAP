@@ -1313,7 +1313,63 @@ class E7 extends Platform
         return compact('PageSize', 'CurrentPage', 'OrderBy', 'OrderType', 'where', 'Append', 'TotalCount');
     }
 
-    public function request(string $uri, string $name, $body = null, string $method = 'post')
+    public function post(...$args)
+    {
+        if (count($args) === 2) {
+            $args[] = [];
+        }
+
+        if (count($args) === 3) {
+            $args[] = __FUNCTION__;
+        } else {
+            throw new InvalidArgumentException('超出预期的参数');
+        }
+        return call_user_func_array([$this, 'request'], $args);
+    }
+
+    public function get(...$args)
+    {
+        if (count($args) === 2) {
+            $args[] = [];
+        }
+
+        if (count($args) === 3) {
+            $args[] = __FUNCTION__;
+        } else {
+            throw new InvalidArgumentException('超出预期的参数');
+        }
+        return call_user_func_array([$this, 'request'], $args);
+    }
+
+    public function put(...$args)
+    {
+        if (count($args) === 2) {
+            $args[] = [];
+        }
+
+        if (count($args) === 3) {
+            $args[] = __FUNCTION__;
+        } else {
+            throw new InvalidArgumentException('超出预期的参数');
+        }
+        return call_user_func_array([$this, 'request'], $args);
+    }
+
+    public function delete(...$args)
+    {
+        if (count($args) === 2) {
+            $args[] = [];
+        }
+
+        if (count($args) === 3) {
+            $args[] = __FUNCTION__;
+        } else {
+            throw new InvalidArgumentException('超出预期的参数');
+        }
+        return call_user_func_array([$this, 'request'], $args);
+    }
+
+    protected function request(string $uri, string $name, $body = null, string $method = 'post')
     {
         $this->uri = $uri;
         $this->name = $name;
