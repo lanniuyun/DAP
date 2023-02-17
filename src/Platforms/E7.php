@@ -1143,6 +1143,10 @@ class E7 extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * @return $this
+     */
     public function syncParkOrder(array $queryPacket = []): self
     {
         $this->uri = 'TollRecord/Add';
@@ -1226,6 +1230,72 @@ class E7 extends Platform
         $this->queryBody['InvoiceMode'] = strval(Arr::get($queryPacket, 'invoiceMode'));
         $this->queryBody['InvoiceData'] = strval(Arr::get($queryPacket, 'invoiceData'));
         $this->queryBody['Gid'] = $this->gID;
+        return $this;
+    }
+
+    public function calculateOrderAmount(array $queryPacket = []): self
+    {
+
+        if (Arr::get($queryPacket, 'ver') === 2) {
+            $this->uri = 'TollService/CalculateToll2TollModel';
+            $this->name = '车辆算费2';
+
+            if (!$this->queryBody['parkingId'] = Arr::get($queryPacket, 'parkingID')) {
+                $this->cancel = true;
+                $this->errBox[] = '入场标识必填';
+            }
+
+            $this->queryBody['paperCoupons'] = Arr::get($queryPacket, 'paperCoupons') ?: [];
+        } else {
+            $this->uri = 'TollService/CalculateTollModel';
+            $this->name = '车辆算费';
+
+            if (!$rawBegan = Arr::get($queryPacket, 'began')) {
+                $this->cancel = true;
+                $this->errBox[] = '开始时间必填';
+            }
+
+            try {
+                $this->queryBody['beginTime'] = Carbon::parse($rawBegan)->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '开始时间填写错误';
+            }
+
+            $this->queryBody['hasFreeMinute'] = boolval(Arr::get($queryPacket, 'hasFreeMinute'));
+            $this->queryBody['deductions'] = Arr::get($queryPacket, 'deductions') ?: [];
+        }
+
+        if (!$this->queryBody['tcmId'] = Arr::get($queryPacket, 'tcmID')) {
+            $this->cancel = true;
+            $this->errBox[] = '卡类ID必填';
+        }
+
+        if (!$this->queryBody['parkId'] = Arr::get($queryPacket, 'parkId')) {
+            $this->cancel = true;
+            $this->errBox[] = '车场ID必填';
+        }
+
+        if (!$rawEnded = Arr::get($queryPacket, 'ended')) {
+            $this->cancel = true;
+            $this->errBox[] = '结束时间必填';
+        }
+
+        try {
+            $this->queryBody['endTime'] = Carbon::parse($rawEnded)->toDateTimeString();
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '结束时间填写错误';
+        }
+
+        if (!$this->queryBody['Rid'] = Arr::get($queryPacket, 'rID')) {
+            $this->cancel = true;
+            $this->errBox[] = 'rID必填';
+        }
+
+        $this->queryBody['IsLegal'] = boolval(Arr::get($queryPacket, 'isLegal'));
+        $this->queryBody['Gid'] = $this->gID;
+        $this->queryBody['ID'] = 0;
         return $this;
     }
 
