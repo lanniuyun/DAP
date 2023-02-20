@@ -96,7 +96,7 @@ class DAP
 
     public function __call($name, $arguments)
     {
-        if (in_array($name, ['post', 'get', 'put', 'delete'])) {
+        if (in_array($name, ['post', 'get', 'put', 'delete']) && method_exists($this->platform, 'request')) {
             if (count($arguments) === 2) {
                 $arguments[] = [];
             }
