@@ -3,6 +3,7 @@
 namespace On3\DAP;
 
 use Illuminate\Support\Arr;
+use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Platforms\AnJuBao;
 use On3\DAP\Platforms\CQTelecom;
 use On3\DAP\Platforms\E7;
@@ -95,7 +96,18 @@ class DAP
 
     public function __call($name, $arguments)
     {
-        if (method_exists($this->platform, $name)) {
+        if (in_array($name, ['post', 'get', 'put', 'delete'])) {
+            if (count($arguments) === 2) {
+                $arguments[] = [];
+            }
+
+            if (count($arguments) === 3) {
+                $arguments[] = __FUNCTION__;
+            } else {
+                throw new InvalidArgumentException('超出预期的参数');
+            }
+            return call_user_func_array([$this->platform, 'request'], $arguments);
+        } elseif (method_exists($this->platform, $name)) {
             return call_user_func_array([$this->platform, $name], $arguments);
         }
         throw new \Exception('试图访问未定义的函数[' . $name . ']');
