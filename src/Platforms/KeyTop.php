@@ -23,7 +23,14 @@ class KeyTop extends Platform
         $this->appId = Arr::get($config, 'appId');
         $this->appSecret = Arr::get($config, 'appSecret');
         $this->parkId = Arr::get($config, 'parkId');
-        $this->gateway = $dev ? Gateways::KEY_TOP_DEV : Gateways::KEY_TOP;
+
+        if ($gateway = Arr::get($config, 'gateway')) {
+            $this->gateway = $gateway;
+        } else {
+            $this->gateway = $dev ? Gateways::KEY_TOP_DEV : Gateways::KEY_TOP;
+        }
+
+        $autoLogging && $this->injectLogObj();
     }
 
     protected function configValidator()
@@ -59,17 +66,6 @@ class KeyTop extends Platform
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
     }
 
-    public function getConfigInfo(): self
-    {
-        $this->uri = '/config/platform/GetConfigInfo';
-        $this->name = '获取平台配置信息';
-
-        $queryDat = ['serviceCode' => 'getConfigInfo'];
-        $this->injectData($queryDat);
-        $this->generateSignature();
-        return $this;
-    }
-
     protected function injectData(array &$queryData)
     {
         if (!Arr::get($queryData, 'ts')) {
@@ -95,5 +91,11 @@ class KeyTop extends Platform
     public function cacheKey(): string
     {
         return '';
+    }
+
+    public function setParkID(string $parkId): self
+    {
+        $this->parkId = $parkId;
+        return $this;
     }
 }
