@@ -18,6 +18,25 @@ class KeyTop extends Platform
 
     const API_VERSION = '1.0.0';
 
+    const RESP_CODES = [
+        0 => '成功',
+        1 => '失败',
+        500 => '系统异常',
+        1001 => '无效的AccessKey',
+        1101 => '认证失败',
+        1102 => '车场未授权',
+        1201 => '参数不完整',
+        1202 => '参数不符合规定值',
+        2001 => '车场处理异常',
+        2101 => '车辆进场失败',
+        2102 => '进场序列号不匹配',
+        -1 => '访问过于频繁，请求被拒绝',
+        -2 => '访问受限IP黑白名单，请求被拒绝',
+        -3 => '未找到路由配置，请求无法处理',
+        -4 => '车场未授权，请求被拒绝',
+        -5 => '业务接口未授权，请求被拒绝'
+    ];
+
     public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
         $this->appId = Arr::get($config, 'appId');
