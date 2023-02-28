@@ -35,10 +35,6 @@ class KeyTop extends Platform
         if (!$this->appSecret) {
             throw new InvalidArgumentException('appSecret不可为空');
         }
-
-        if (!$this->parkId) {
-            throw new InvalidArgumentException('车场ID不可为空');
-        }
     }
 
     protected function getReqID(): string
@@ -46,7 +42,7 @@ class KeyTop extends Platform
         return intval(microtime(true) * 1000) . mt_rand(1000, 9999);
     }
 
-    protected function generateSignature()
+    protected function generateSignature(): self
     {
         $queryBody = $this->queryBody;
         ksort($queryBody);
@@ -63,10 +59,11 @@ class KeyTop extends Platform
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
     }
 
-    public function getConfigInfo()
+    public function getConfigInfo(): self
     {
         $this->uri = '/config/platform/GetConfigInfo';
         $this->name = '获取平台配置信息';
+
         $queryDat = ['serviceCode' => 'getConfigInfo'];
         $this->injectData($queryDat);
         $this->generateSignature();
