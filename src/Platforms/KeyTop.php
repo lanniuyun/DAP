@@ -156,13 +156,18 @@ class KeyTop extends Platform
         }
 
         $this->queryBody = $queryData;
+        $this->generateSignature();
     }
 
     protected function formatResp(&$response)
     {
         $resCode = Arr::get($response, 'resCode');
-        $resMsg = Arr::get($response, 'resMag');
+        $resMsg = strval(Arr::get($response, 'resMag'));
         $data = Arr::get($response, 'data') ?: [];
+
+        if (is_string($data)&& ($tempDat = @json_decode($data, true))) {
+            $data = $tempDat;
+        }
 
         if ($resCode === 0) {
             $resPacket = ['code' => 0, 'msg' => $resMsg, 'data' => $data, 'raw_resp' => $response];
@@ -184,14 +189,32 @@ class KeyTop extends Platform
         return $this;
     }
 
-    public function getConfig(): self
+    /**
+     * @return $this
+     */
+    public function getConfig(array $queryPacket = []): self
     {
         $this->uri = 'config/platform/GetConfigInfo';
         $this->name = '获取平台配置信息';
 
         $queryDat = ['serviceCode' => 'getConfigInfo'];
         $this->injectData($queryDat);
-        $this->generateSignature();
+
+        return $this;
+    }
+
+    public function getPaySource(array $queryPacket = []): self
+    {
+        $this->uri = 'config/platform/GetPaySource';
+        $this->name = '根据支付来源编码获取来源名称';
+
+        if (!$code = Arr::get($queryPacket, 'code')) {
+            $this->errBox[] = '支付来源编码不得为空';
+            $this->cancel = true;
+        }
+
+        $rawBody = ['serviceCode' => 'getPaySource', 'paySourceCode' => $code];
+        $this->injectData($rawBody);
 
         return $this;
     }
