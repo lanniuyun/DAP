@@ -4,7 +4,9 @@ namespace On3\DAP\Platforms;
 
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 use On3\DAP\Exceptions\InvalidArgumentException;
+use On3\DAP\Exceptions\RequestFailedException;
 use On3\DAP\Traits\DAPHashTrait;
 
 class KeyTop extends Platform
@@ -73,9 +75,9 @@ class KeyTop extends Platform
         $queryBody = $this->queryBody;
         ksort($queryBody);
         unset($queryBody['appId'], $queryBody['appSecret']);
-        $rawQueryStr = $this->join2Str($queryBody);
-        $rawQueryStr .= '&' . $this->appSecret;
-        $this->queryBody['key'] = md5($rawQueryStr);
+        $rawKeyStr = $this->join2Str($queryBody);
+        $rawKeyStr .= '&' . $this->appSecret;
+        $this->queryBody['key'] = strtoupper(md5($rawKeyStr));
         return $this;
     }
 
@@ -83,6 +85,60 @@ class KeyTop extends Platform
     {
         $httpMethod = $this->httpMethod;
         $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
+        if ($this->cancel) {
+
+            $errBox = $this->errBox;
+            if (is_array($errBox)) {
+                $errMsg = implode(',', $errBox);
+            } else {
+                $errMsg = '未知错误';
+            }
+            $this->cleanup();
+            throw new InvalidArgumentException($errMsg);
+        } else {
+
+            $exception = $rawResponse = $contentStr = null;
+
+            try {
+                $rawResponse = $httpClient->$httpMethod($this->uri, ['headers' => ['version' => self::API_VERSION], 'json' => $this->queryBody]);
+                $contentStr = $rawResponse->getBody()->getContents();
+                $contentArr = @json_decode($contentStr, true);
+            } catch (\Throwable $exception) {
+                $contentArr = $exception->getMessage();
+            } finally {
+                try {
+                    $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $this->uri, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+                } catch (\Throwable $ignoredException) {
+                }
+
+                $this->cleanup();
+
+                if ($exception instanceof \Throwable) {
+                    throw new RequestFailedException($exception->getMessage());
+                }
+
+                if (!$rawResponse) {
+                    throw new RequestFailedException('接口请求失败:' . $this->name . '无返回');
+                }
+
+                if ($rawResponse->getStatusCode() !== 200) {
+                    throw new RequestFailedException('接口请求失败:' . $this->name);
+                }
+
+                switch ($this->responseFormat) {
+                    case self::RESP_FMT_JSON:
+                        $responsePacket = $contentArr;
+                        $this->formatResp($responsePacket);
+                        return $responsePacket;
+                    case self::RESP_FMT_BODY:
+                        return $contentStr;
+                    case self::RESP_FMT_RAW:
+                    default:
+                        return $rawResponse;
+                }
+            }
+        }
     }
 
     protected function injectData(array &$queryData)
@@ -104,7 +160,17 @@ class KeyTop extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        $resCode = Arr::get($response, 'resCode');
+        $resMsg = Arr::get($response, 'resMag');
+        $data = Arr::get($response, 'data') ?: [];
+
+        if ($resCode === 0) {
+            $resPacket = ['code' => 0, 'msg' => $resMsg, 'data' => $data, 'raw_resp' => $response];
+        } else {
+            $resPacket = ['code' => $resCode ?: 1, 'msg' => $resMsg, 'data' => $data, 'raw_resp' => $response];
+        }
+
+        $response = $resPacket;
     }
 
     public function cacheKey(): string
@@ -117,4 +183,17 @@ class KeyTop extends Platform
         $this->parkId = $parkId;
         return $this;
     }
+
+    public function getConfig(): self
+    {
+        $this->uri = 'config/platform/GetConfigInfo';
+        $this->name = '获取平台配置信息';
+
+        $queryDat = ['serviceCode' => 'getConfigInfo'];
+        $this->injectData($queryDat);
+        $this->generateSignature();
+
+        return $this;
+    }
+
 }
