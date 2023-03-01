@@ -41,9 +41,9 @@ class KeyTop extends Platform
 
     public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
-        $this->appId = Arr::get($config, 'appId');
+        $this->appId = Arr::get($config, 'appID');
         $this->appSecret = Arr::get($config, 'appSecret');
-        $this->parkId = Arr::get($config, 'parkId');
+        $this->parkId = Arr::get($config, 'parkID');
 
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
@@ -51,6 +51,7 @@ class KeyTop extends Platform
             $this->gateway = $dev ? Gateways::KEY_TOP_DEV : Gateways::KEY_TOP;
         }
 
+        $this->configValidator();
         $autoLogging && $this->injectLogObj();
     }
 
@@ -77,7 +78,6 @@ class KeyTop extends Platform
         unset($queryBody['appId'], $queryBody['appSecret']);
         $rawKeyStr = $this->join2Str($queryBody);
         $rawKeyStr .= '&' . $this->appSecret;
-        Log::info($rawKeyStr);
         $this->queryBody['key'] = strtoupper(md5($rawKeyStr));
         return $this;
     }
@@ -163,14 +163,14 @@ class KeyTop extends Platform
     protected function formatResp(&$response)
     {
         $resCode = Arr::get($response, 'resCode');
-        $resMsg = strval(Arr::get($response, 'resMag'));
+        $resMsg = strval(Arr::get($response, 'resMsg'));
         $data = Arr::get($response, 'data') ?: [];
 
         if (is_string($data) && ($tempDat = @json_decode($data, true))) {
             $data = $tempDat;
         }
 
-        if ($resCode === 0) {
+        if ($resCode === '0') {
             $resPacket = ['code' => 0, 'msg' => $resMsg, 'data' => $data, 'raw_resp' => $response];
         } else {
             $resPacket = ['code' => $resCode ?: 1, 'msg' => $resMsg, 'data' => $data, 'raw_resp' => $response];
@@ -188,6 +188,17 @@ class KeyTop extends Platform
     {
         $this->parkId = $parkId;
         return $this;
+    }
+
+    protected function getParkID(array $queryPacket = [])
+    {
+        $parkID = Arr::get($queryPacket, 'ID') ?: $this->parkId;
+
+        if (!$parkID) {
+            $this->errBox[] = '车场ID必填';
+            $this->cancel = true;
+        }
+        return $parkID;
     }
 
     /**
@@ -255,11 +266,7 @@ class KeyTop extends Platform
         $this->uri = 'api/wec/GetParkingLotInfo';
         $this->name = '停车场信息查询';
 
-        if (!$parkID = Arr::get($queryPacket, 'ID')) {
-            $this->errBox[] = '车场ID必填';
-            $this->cancel = true;
-        }
-
+        $parkID = self::getParkID($queryPacket);
         $rawBody = ['serviceCode' => 'getParkingLotInfo', 'parkId' => $parkID];
         $this->injectData($rawBody);
 
@@ -277,11 +284,7 @@ class KeyTop extends Platform
         $this->uri = 'api/wec/GetDeviceList';
         $this->name = '获取车场终端设备信息列表';
 
-        if (!$parkID = Arr::get($queryPacket, 'ID')) {
-            $this->errBox[] = '车场ID必填';
-            $this->cancel = true;
-        }
-
+        $parkID = self::getParkID($queryPacket);
         $deviceType = intval(Arr::get($queryPacket, 'type'));
         $rawBody = ['parkId' => $parkID, 'serviceCode' => 'getDeviceList', 'deviceType' => $deviceType];
         $this->injectData($rawBody);
@@ -289,23 +292,104 @@ class KeyTop extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * ID string 车场ID
+     * @return $this
+     */
     public function getParkArea(array $queryPacket = []): self
     {
         $this->uri = 'api/wec/GetParkingPlaceArea';
         $this->name = '区域信息';
 
-        if (!$parkID = Arr::get($queryPacket, 'ID')) {
-            $this->errBox[] = '车场ID必填';
-            $this->cancel = true;
-        }
+        $parkID = self::getParkID($queryPacket);
         $rawBody = ['serviceCode' => 'getParkingPlaceArea', 'parkId' => $parkID];
         $this->injectData($rawBody);
 
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * ID string 车场ID
+     * page int 页码
+     * pageSize int 每页条数
+     * @return $this
+     */
     public function getParkLane(array $queryPacket = []): self
     {
+        $this->uri = 'api/wec/GetParkingNode';
+        $this->name = '通道信息';
+
+        $parkID = self::getParkID($queryPacket);
+        $pageSize = abs(intval(Arr::get($queryPacket, 'pageSize'))) ?: 15;
+        $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
+        $rawBody = ['serviceCode' => 'getParkingNode', 'parkId' => $parkID, 'pageIndex' => $page, 'pageSize' => $pageSize];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * ID string 车场ID
+     * @return $this
+     */
+    public function getParkExtInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetParkingLotInfoExt';
+        $this->name = '停车场信息查询扩展';
+
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => 'getParkingLotInfo', 'parkId' => $parkID];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getLaneInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetNodeInfoById';
+        $this->name = '根据通道ID查询通道数据及所属区域信息';
+
+        $parkID = self::getParkID($queryPacket);
+
+        if (!$laneID = Arr::get($queryPacket, 'laneID')) {
+            $this->errBox[] = '通道ID必填';
+            $this->cancel = true;
+        }
+
+        $rawBody = ['serviceCode' => 'getNodeInfoById', 'parkId' => $parkID, 'nodeId' => $laneID];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * @return $this
+     */
+    public function queryCar(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetCarCardInfo';
+        $this->name = '固定车查询接口';
+
+        $parkID = self::getParkID($queryPacket);
+        $carNo = Arr::get($queryPacket, 'carNo');
+        $cardID = Arr::get($queryPacket, 'cardID');
+
+        $rawBody = ['serviceCode' => 'getNodeInfoById', 'parkId' => $parkID];
+
+        if ($carNo) {
+            $rawBody['plateNo'] = $carNo;
+        } elseif ($cardID) {
+            $rawBody['cardId'] = $cardID;
+        } else {
+            $this->errBox[] = '车牌号or卡片ID为空';
+            $this->cancel = true;
+        }
+        $this->injectData($rawBody);
+
         return $this;
     }
 }
