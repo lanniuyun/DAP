@@ -165,7 +165,7 @@ class KeyTop extends Platform
         $resMsg = strval(Arr::get($response, 'resMag'));
         $data = Arr::get($response, 'data') ?: [];
 
-        if (is_string($data)&& ($tempDat = @json_decode($data, true))) {
+        if (is_string($data) && ($tempDat = @json_decode($data, true))) {
             $data = $tempDat;
         }
 
@@ -203,6 +203,11 @@ class KeyTop extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * code string 支付来源码
+     * @return $this
+     */
     public function getPaySource(array $queryPacket = []): self
     {
         $this->uri = 'config/platform/GetPaySource';
@@ -219,4 +224,21 @@ class KeyTop extends Platform
         return $this;
     }
 
+    /**
+     * @param array $queryPacket
+     * @return $this
+     */
+    public function getParkList(array $queryPacket = []): self
+    {
+        $this->uri = 'config/platform/GetParkingLotList';
+        $this->name = '停车场列表';
+
+        $pageSize = abs(intval(Arr::get($queryPacket, 'pageSize'))) ?: 15;
+        $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
+        $rawBody = ['serviceCode' => 'getParkingLotList', 'pageIndex' => $page, 'pageSize' => $pageSize];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
 }
