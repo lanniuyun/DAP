@@ -1024,25 +1024,25 @@ class E7 extends Platform
                 'VehicleColor' => strval(Arr::get($queryPacket, 'vehicleColor')),
                 'VehicleCategory' => strval(Arr::get($queryPacket, 'vehicleCategory')),
                 'PlateColor' => strval(Arr::get($queryPacket, 'vehicleColor')),
-                'InLaneId' => strval(Arr::get($queryPacket, 'inLaneId')),
+                'InLaneId' => strval(Arr::get($queryPacket, 'inLaneID')),
                 'InLaneName' => strval(Arr::get($queryPacket, 'inLaneName')),
                 'InTime' => strval(Arr::get($queryPacket, 'inTime')),
                 'InPicture' => strval(Arr::get($queryPacket, 'inPicture')),
                 'InPicture2' => strval(Arr::get($queryPacket, 'inPicture2')),
-                'InOperatorId' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'InOperatorName' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'InType' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'InFlag' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'LotFullRemark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'State' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'PayMark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'LastChargeTime' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'GroupLotState' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'ReservationNo' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'InRemark' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'TerminalId' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'TerminalName' => strval(Arr::get($queryPacket, 'inPictureStaff')),
-                'Province' => strval(Arr::get($queryPacket, 'inPictureStaff')),
+                'InOperatorId' => strval(Arr::get($queryPacket, 'inOperatorID')),
+                'InOperatorName' => strval(Arr::get($queryPacket, 'inOperatorName')),
+                'InType' => strval(Arr::get($queryPacket, 'inType')),
+                'InFlag' => strval(Arr::get($queryPacket, 'inFlag')),
+                'LotFullRemark' => strval(Arr::get($queryPacket, 'lotFullRemark')),
+                'State' => strval(Arr::get($queryPacket, 'state')),
+                'PayMark' => strval(Arr::get($queryPacket, 'payMark')),
+                'LastChargeTime' => strval(Arr::get($queryPacket, 'lastChargeTime')),
+                'GroupLotState' => strval(Arr::get($queryPacket, 'groupLotState')),
+                'ReservationNo' => strval(Arr::get($queryPacket, 'reservationNo')),
+                'InRemark' => strval(Arr::get($queryPacket, 'inRemark')),
+                'TerminalId' => strval(Arr::get($queryPacket, 'terminalID')),
+                'TerminalName' => strval(Arr::get($queryPacket, 'terminalName')),
+                'Province' => strval(Arr::get($queryPacket, 'province')),
                 'Gid' => $this->gID,
                 'Rid' => strval(Arr::get($queryPacket, 'rID'))
             ];
@@ -1057,11 +1057,11 @@ class E7 extends Platform
                 $rawBody['OutPicture'] = strval(Arr::get($queryPacket, 'outPicture'));
                 $rawBody['OutPicture2'] = strval(Arr::get($queryPacket, 'outPicture2'));
                 $rawBody['OutPictureStaff'] = strval(Arr::get($queryPacket, 'outPictureStaff'));
-                $rawBody['OutOperatorId'] = strval(Arr::get($queryPacket, 'outOperatorId'));
+                $rawBody['OutOperatorId'] = strval(Arr::get($queryPacket, 'outOperatorID'));
                 $rawBody['OutOperatorName'] = strval(Arr::get($queryPacket, 'outOperatorName'));
                 $rawBody['OutType'] = intval(Arr::get($queryPacket, 'outType'));
                 $rawBody['OutFlag'] = intval(Arr::get($queryPacket, 'outFlag'));
-                $rawBody['OutLaneId'] = strval(Arr::get($queryPacket, 'outLaneId'));
+                $rawBody['OutLaneId'] = strval(Arr::get($queryPacket, 'outLaneID'));
                 $rawBody['OutRemark'] = strval(Arr::get($queryPacket, 'outRemark'));
                 $rawBody['StayLasts'] = strval(Arr::get($queryPacket, 'stayLasts'));
                 $rawBody['TranAmount'] = floatval(Arr::get($queryPacket, 'tranAmount'));
@@ -1079,7 +1079,7 @@ class E7 extends Platform
 
                 $this->queryBody['InVehicle'] = $rawBody;
                 $this->queryBody['ParkZone'] = intval(Arr::get($queryPacket, 'parkZone'));
-                $this->queryBody['Append'] = strval(Arr::get($queryPacket, 'Append'));
+                $this->queryBody['Append'] = strval(Arr::get($queryPacket, 'append'));
                 $this->queryBody['IsLegal'] = boolval(Arr::get($queryPacket, 'isLegal'));
                 $this->queryBody['Rid'] = strval(Arr::get($queryPacket, 'rID'));
             }
