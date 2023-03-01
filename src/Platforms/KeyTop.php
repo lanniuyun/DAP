@@ -77,6 +77,7 @@ class KeyTop extends Platform
         unset($queryBody['appId'], $queryBody['appSecret']);
         $rawKeyStr = $this->join2Str($queryBody);
         $rawKeyStr .= '&' . $this->appSecret;
+        Log::info($rawKeyStr);
         $this->queryBody['key'] = strtoupper(md5($rawKeyStr));
         return $this;
     }
@@ -262,6 +263,49 @@ class KeyTop extends Platform
         $rawBody = ['serviceCode' => 'getParkingLotInfo', 'parkId' => $parkID];
         $this->injectData($rawBody);
 
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * ID string 车场ID
+     * type int 设备类型
+     * @return $this
+     */
+    public function getDeviceList(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetDeviceList';
+        $this->name = '获取车场终端设备信息列表';
+
+        if (!$parkID = Arr::get($queryPacket, 'ID')) {
+            $this->errBox[] = '车场ID必填';
+            $this->cancel = true;
+        }
+
+        $deviceType = intval(Arr::get($queryPacket, 'type'));
+        $rawBody = ['parkId' => $parkID, 'serviceCode' => 'getDeviceList', 'deviceType' => $deviceType];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getParkArea(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetParkingPlaceArea';
+        $this->name = '区域信息';
+
+        if (!$parkID = Arr::get($queryPacket, 'ID')) {
+            $this->errBox[] = '车场ID必填';
+            $this->cancel = true;
+        }
+        $rawBody = ['serviceCode' => 'getParkingPlaceArea', 'parkId' => $parkID];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getParkLane(array $queryPacket = []): self
+    {
         return $this;
     }
 }
