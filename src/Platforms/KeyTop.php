@@ -226,6 +226,8 @@ class KeyTop extends Platform
 
     /**
      * @param array $queryPacket
+     * page int 页数
+     * pageSize int 每页条数
      * @return $this
      */
     public function getParkList(array $queryPacket = []): self
@@ -237,6 +239,27 @@ class KeyTop extends Platform
         $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
         $rawBody = ['serviceCode' => 'getParkingLotList', 'pageIndex' => $page, 'pageSize' => $pageSize];
 
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * ID string 车场ID
+     * @return $this
+     */
+    public function getParkInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetParkingLotInfo';
+        $this->name = '停车场信息查询';
+
+        if (!$parkID = Arr::get($queryPacket, 'ID')) {
+            $this->errBox[] = '车场ID必填';
+            $this->cancel = true;
+        }
+
+        $rawBody = ['serviceCode' => 'getParkingLotInfo', 'parkId' => $parkID];
         $this->injectData($rawBody);
 
         return $this;
