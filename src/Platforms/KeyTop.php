@@ -76,7 +76,7 @@ class KeyTop extends Platform
         $queryBody = $this->queryBody;
         ksort($queryBody);
         unset($queryBody['appId'], $queryBody['appSecret']);
-        $rawKeyStr = $this->join2Str($queryBody);
+        $rawKeyStr = $this->join2StrV1($queryBody);
         $rawKeyStr .= '&' . $this->appSecret;
         $this->queryBody['key'] = strtoupper(md5($rawKeyStr));
         return $this;
@@ -390,6 +390,183 @@ class KeyTop extends Platform
         }
         $this->injectData($rawBody);
 
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     * act int 操作 1:新增 2:更新 0:删除
+     * @return $this
+     */
+    public function operateExtendedService(array $queryPacket = []): self
+    {
+
+        switch ($act = Arr::get($queryPacket, 'act')) {
+            case 0:
+                $this->uri = 'api/wec/DelCarCardInfo';
+                $this->name = '固定车删除';
+                $serviceCode = 'delCarCardInfo';
+                break;
+            case 2:
+                $this->uri = 'api/wec/ModifyCarCardNo';
+                $this->name = '修改车新增';
+                $serviceCode = 'modifyCarCardNo';
+                break;
+            case 1:
+            default:
+                $this->uri = 'api/wec/AddCarCardNo';
+                $this->name = '固定车新增';
+                $serviceCode = 'addCarCardNo';
+                $act = 1;
+                break;
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => $serviceCode, 'parkId' => $parkID];
+
+        if ($act !== 0) {
+
+            $operateID = intval(Arr::get($queryPacket, 'operateID'));
+
+            if (!$operateName = Arr::get($queryPacket, 'operateName')) {
+                $this->errBox[] = '操作人员名称必填';
+                $this->cancel = true;
+            }
+
+            $rawBody['userId'] = $operateID;
+            $rawBody['userName'] = $operateName;
+
+            if (!$cardName = Arr::get($queryPacket, 'cardName')) {
+                $this->errBox[] = '卡名称必填';
+                $this->cancel = true;
+            }
+
+            if (!$userName = Arr::get($queryPacket, 'userName')) {
+                $this->errBox[] = '户主名必填';
+                $this->cancel = true;
+            }
+
+            $cardInfo = [
+                'cardName' => $cardName,
+                'useName' => $userName,
+                'tel' => strval(Arr::get($queryPacket, 'phone')),
+                'roomId' => strval(Arr::get($queryPacket, 'roomID')),
+                'remak' => strval(Arr::get($queryPacket, 'remark')),
+                'contact' => strval(Arr::get($queryPacket, 'contact')),
+                'assist' => strval(Arr::get($queryPacket, 'assist'))
+            ];
+
+            if ($act === 2) {
+                if (!$cardID = Arr::get($queryPacket, 'cardID')) {
+                    $this->errBox[] = '卡片id必填';
+                    $this->cancel = true;
+                }
+
+                $cardInfo['cardId'] = $cardID;
+                $cardInfo['updateTime'] = strval(Arr::get($queryPacket, 'updateTime'));
+            }
+
+            $rawBody['cardInfo'] = @json_encode($cardInfo);
+
+            if ($lots = Arr::get($queryPacket, 'lots')) {
+
+                $carLotList = [];
+
+                foreach ($lots as $lot) {
+
+                    if (!$lotName = Arr::get($lot, 'name')) {
+                        $this->errBox[] = '车位名称必填';
+                        $this->cancel = true;
+                    }
+
+                    $id = intval(Arr::get($lot, 'ID'));
+                    $carType = intval(Arr::get($lot, 'type'));
+                    $sequence = intval(Arr::get($lot, 'sequence'));
+                    $lotCount = intval(Arr::get($lot, 'count'));
+                    $areaIDs = Arr::get($lot, 'areaIDs');
+
+                    if (is_string($areaIDs)) {
+                        $areaIDs = explode(',', $areaIDs);
+                    }
+
+                    if (!$areaName = Arr::get($lot, 'area')) {
+                        $this->errBox[] = '区域名称必填';
+                        $this->cancel = true;
+                    }
+
+                    if (!$areaIDs || !is_array($areaIDs)) {
+                        $this->errBox[] = '区域IDs必填';
+                        $this->cancel = true;
+                    }
+
+                    $carLotList[] = [
+                        'id' => $id,
+                        'lotName' => $lotName,
+                        'carType' => $carType,
+                        'sequence' => $sequence,
+                        'areaName' => $areaName,
+                        'areaId' => $areaIDs,
+                        'lotCount' => $lotCount,
+                        'ruleId' => intval(Arr::get($lot, 'ruleID'))
+                    ];
+                }
+
+                if (!$carLotList) {
+                    $this->errBox[] = '车位为空';
+                    $this->cancel = true;
+                }
+
+                $rawBody['carLotList'] = @json_encode($carLotList);
+            } else {
+                $this->errBox[] = '车位信息必填';
+                $this->cancel = true;
+            }
+
+            if ($cars = Arr::get($queryPacket, 'cars')) {
+
+                $plateNoInfo = [];
+
+                foreach ($cars as $car) {
+
+                    $rowInfo = [];
+
+                    if ($carNo = Arr::get($car, 'carNo')) {
+                        $rowInfo = ['plateNo' => $carNo];
+                    } elseif ($etcNo = Arr::get($car, 'etcNo')) {
+                        $rowInfo = ['etcNo' => $etcNo];
+                    }
+
+                    if ($act === 2) {
+                        if ($ID = Arr::get($car, 'id')) {
+                            $rowInfo['id'] = $ID;
+                        }
+                    }
+
+                    if ($rowInfo) {
+                        $plateNoInfo[] = $rowInfo;
+                    }
+                }
+
+                if (!$plateNoInfo) {
+                    $this->errBox[] = '车牌为空';
+                    $this->cancel = true;
+                }
+
+                $rawBody['plateNoInfo'] = @json_encode($plateNoInfo);
+            } else {
+                $this->errBox[] = '车辆信息必填';
+                $this->cancel = true;
+            }
+
+        } else {
+            if (!$cardID = Arr::get($queryPacket, 'cardID')) {
+                $this->errBox[] = '卡片ID必填';
+                $this->cancel = true;
+            }
+            $rawBody['cardId'] = $cardID;
+        }
+
+        $this->injectData($rawBody);
         return $this;
     }
 }

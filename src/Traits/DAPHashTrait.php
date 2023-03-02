@@ -33,4 +33,23 @@ trait DAPHashTrait
         }
         return $str;
     }
+
+    /**
+     * @param array $queryPacket
+     * @return string
+     */
+    protected function join2StrV1(array $queryPacket): string
+    {
+        $str = '';
+        foreach ($queryPacket as $key => $value) {
+            if (($value !== null) && ($value !== '')) {
+                if (is_array($value)) {
+                    continue;
+                }
+                $str && $str .= '&';
+                $str .= $key . '=' . $value;
+            }
+        }
+        return $str;
+    }
 }
