@@ -673,4 +673,30 @@ class KeyTop extends Platform
 
         return $this;
     }
+
+    public function getExtendedServiceOrderList(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetCarCardChargeList';
+        $this->name = '查询固定车充值信息';
+
+        $parkID = self::getParkID($queryPacket);
+        $pageSize = abs(intval(Arr::get($queryPacket, 'pageSize'))) ?: 15;
+        $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
+        $plateNo = strval(Arr::get($queryPacket, 'carNo'));
+        if (!$beginTime = strval(Arr::get($queryPacket, 'beganAt'))) {
+            $this->errBox[] = '充值开始时间必填';
+            $this->cancel = true;
+        }
+
+        if (!$endTime = strval(Arr::get($queryPacket, 'endedAt'))) {
+            $this->errBox[] = '充值结束时间必填';
+            $this->cancel = true;
+        }
+
+        $rawBody = ['serviceCode' => 'getCarCardList', 'parkId' => $parkID, 'pageIndex' => $page, 'pageSize' => $pageSize];
+        $rawBody = array_merge($rawBody, compact('plateNo', 'beginTime', 'endTime'));
+        $this->injectData($rawBody);
+
+        return $this;
+    }
 }
