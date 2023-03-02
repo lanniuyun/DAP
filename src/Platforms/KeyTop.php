@@ -620,6 +620,16 @@ class KeyTop extends Platform
             $this->cancel = true;
         }
 
+        if(!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))){
+            $this->errBox[] = '充值开始时间必填';
+            $this->cancel = true;
+        }
+
+        if(!$validTo = strval(Arr::get($queryPacket, 'endedAt'))){
+            $this->errBox[] = '充值结束时间必填';
+            $this->cancel = true;
+        }
+
         $parkID = self::getParkID($queryPacket);
         $operateID = intval(Arr::get($queryPacket, 'operateID'));
         $carType = intval(Arr::get($queryPacket, 'type'));
@@ -628,8 +638,6 @@ class KeyTop extends Platform
         $chargeNumber = abs(intval(Arr::get($queryPacket, 'offset')));
         $freeNumber = abs(intval(Arr::get($queryPacket, 'freeOffset')));
         $amount = abs(intval(Arr::get($queryPacket, 'amount')));
-        $validFrom = strval(Arr::get($queryPacket, 'beganAt'));
-        $validTo = strval(Arr::get($queryPacket, 'endedAt'));
         $remark = strval(Arr::get($queryPacket, 'remark'));
 
         $rawBody = [
@@ -695,6 +703,66 @@ class KeyTop extends Platform
 
         $rawBody = ['serviceCode' => 'getCarCardList', 'parkId' => $parkID, 'pageIndex' => $page, 'pageSize' => $pageSize];
         $rawBody = array_merge($rawBody, compact('plateNo', 'beginTime', 'endTime'));
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function refundExtendedService(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/RefundCarCardFee';
+        $this->name = '固定车退款接口';
+
+        if (!$cardID = Arr::get($queryPacket, 'cardID')) {
+            $this->errBox[] = '卡片ID必填';
+            $this->cancel = true;
+        }
+
+        if (!$operateName = Arr::get($queryPacket, 'operateName')) {
+            $this->errBox[] = '操作人员名称必填';
+            $this->cancel = true;
+        }
+
+        if (!$orderCode = Arr::get($queryPacket, 'orderCode')) {
+            $this->errBox[] = '订单号必填';
+            $this->cancel = true;
+        }
+
+        if(!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))){
+            $this->errBox[] = '充值开始时间必填';
+            $this->cancel = true;
+        }
+
+        if(!$validTo = strval(Arr::get($queryPacket, 'endedAt'))){
+            $this->errBox[] = '充值结束时间必填';
+            $this->cancel = true;
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $operateID = intval(Arr::get($queryPacket, 'operateID'));
+        $carType = intval(Arr::get($queryPacket, 'type'));
+        $payChannel = intval(Arr::get($queryPacket, 'payChannel'));
+        $refundMethod = intval(Arr::get($queryPacket, 'refundType'));
+        $refundNumber = abs(intval(Arr::get($queryPacket, 'offset')));
+        $amount = abs(intval(Arr::get($queryPacket, 'amount')));
+        $remark = strval(Arr::get($queryPacket, 'remark'));
+
+        $rawBody = [
+            'parkId' => $parkID,
+            'serviceCode' => 'refundCarCardFee',
+            'userId' => $operateID,
+            'userName' => $operateName,
+            'cardId' => $cardID,
+            'orderNo' => $orderCode,
+            'carType' => $carType,
+            'payChannel' => $payChannel,
+            'amount' => $amount,
+            'refundMethod' => $refundMethod,
+            'refundNumber' => $refundNumber,
+            'validFrom' => $validFrom,
+            'validTo' => $validTo,
+            'remark' => $remark
+        ];
         $this->injectData($rawBody);
 
         return $this;
