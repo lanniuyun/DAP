@@ -569,4 +569,108 @@ class KeyTop extends Platform
         $this->injectData($rawBody);
         return $this;
     }
+
+    /**
+     * @param array $queryPacket
+     * type int 车的类型
+     * ID int 规则ID
+     * @return $this
+     */
+    public function getCardRules(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetCarCardRule';
+        $this->name = '充值规则查询';
+
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => 'getCarCardRule', 'parkId' => $parkID];
+
+        $type = Arr::get($queryPacket, 'type');
+        $ID = Arr::get($queryPacket, 'ID');
+
+        if (is_integer($type)) {
+            $rawBody['carType'] = $type;
+        }
+
+        if (is_int($ID)) {
+            $rawBody['ruleId'] = $ID;
+        }
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function payExtendedService(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/PayCarCardFee';
+        $this->name = '固定车充值接口';
+
+        if (!$cardID = Arr::get($queryPacket, 'cardID')) {
+            $this->errBox[] = '卡片ID必填';
+            $this->cancel = true;
+        }
+
+        if (!$operateName = Arr::get($queryPacket, 'operateName')) {
+            $this->errBox[] = '操作人员名称必填';
+            $this->cancel = true;
+        }
+
+        if (!$orderCode = Arr::get($queryPacket, 'orderCode')) {
+            $this->errBox[] = '订单号必填';
+            $this->cancel = true;
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $operateID = intval(Arr::get($queryPacket, 'operateID'));
+        $carType = intval(Arr::get($queryPacket, 'type'));
+        $payChannel = intval(Arr::get($queryPacket, 'payChannel'));
+        $chargeMethod = intval(Arr::get($queryPacket, 'payType'));
+        $chargeNumber = abs(intval(Arr::get($queryPacket, 'offset')));
+        $freeNumber = abs(intval(Arr::get($queryPacket, 'freeOffset')));
+        $amount = abs(intval(Arr::get($queryPacket, 'amount')));
+        $validFrom = strval(Arr::get($queryPacket, 'beganAt'));
+        $validTo = strval(Arr::get($queryPacket, 'endedAt'));
+        $remark = strval(Arr::get($queryPacket, 'remark'));
+
+        $rawBody = [
+            'serviceCode' => 'payCarCardFee',
+            'parkId' => $parkID,
+            'userId' => $operateID,
+            'userName' => $operateName,
+            'cardId' => $cardID,
+            'orderNo' => $orderCode,
+            'carType' => $carType,
+            'payChannel' => $payChannel,
+            'chargeMethod' => $chargeMethod,
+            'chargeNumber' => $chargeNumber,
+            'amount' => $amount,
+            'freeNumber' => $freeNumber,
+            'validFrom' => $validFrom,
+            'validTo' => $validTo,
+            'createTime' => now()->toDateTimeString(),
+            'remark' => $remark
+        ];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getExtendedServiceList(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetCarCardList';
+        $this->name = '固定车列表';
+
+        $parkID = self::getParkID($queryPacket);
+        $pageSize = abs(intval(Arr::get($queryPacket, 'pageSize'))) ?: 15;
+        $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
+        $carType = intval(Arr::get($queryPacket, 'type'));
+        $sortField = intval(Arr::get($queryPacket, 'sortField'));
+        $sortType = intval(Arr::get($queryPacket, 'sortType'));
+
+        $rawBody = ['serviceCode' => 'getCarCardList', 'parkId' => $parkID, 'pageIndex' => $page, 'pageSize' => $pageSize, 'carType' => $carType, 'sortField' => $sortField, 'sortType' => $sortType];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
 }
