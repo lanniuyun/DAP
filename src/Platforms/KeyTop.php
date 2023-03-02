@@ -620,12 +620,12 @@ class KeyTop extends Platform
             $this->cancel = true;
         }
 
-        if(!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))){
+        if (!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))) {
             $this->errBox[] = '充值开始时间必填';
             $this->cancel = true;
         }
 
-        if(!$validTo = strval(Arr::get($queryPacket, 'endedAt'))){
+        if (!$validTo = strval(Arr::get($queryPacket, 'endedAt'))) {
             $this->errBox[] = '充值结束时间必填';
             $this->cancel = true;
         }
@@ -728,12 +728,12 @@ class KeyTop extends Platform
             $this->cancel = true;
         }
 
-        if(!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))){
+        if (!$validFrom = strval(Arr::get($queryPacket, 'beganAt'))) {
             $this->errBox[] = '充值开始时间必填';
             $this->cancel = true;
         }
 
-        if(!$validTo = strval(Arr::get($queryPacket, 'endedAt'))){
+        if (!$validTo = strval(Arr::get($queryPacket, 'endedAt'))) {
             $this->errBox[] = '充值结束时间必填';
             $this->cancel = true;
         }
@@ -765,6 +765,47 @@ class KeyTop extends Platform
         ];
         $this->injectData($rawBody);
 
+        return $this;
+    }
+
+    public function auditExtendedService(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/AuditCardRecharge';
+        $this->name = '固定车审核';
+
+        if (!$operateName = Arr::get($queryPacket, 'operateName')) {
+            $this->errBox[] = '操作人员名称必填';
+            $this->cancel = true;
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $operateID = intval(Arr::get($queryPacket, 'operateID'));
+        $auditType = intval(Arr::get($queryPacket, 'type'));
+        $auditStatus = strval(Arr::get($queryPacket, 'status'));
+        $auditRemark = strval(Arr::get($queryPacket, 'remark'));
+        $cardID = strval(Arr::get($queryPacket, 'cardID'));
+        $orderNo = strval(Arr::get($queryPacket, 'orderCode'));
+
+        $rawBody = [
+            'serviceCode' => 'auditCardRecharge',
+            'parkId' => $parkID,
+            'userId' => $operateID,
+            'userName' => $operateName,
+            'auditType' => $auditType,
+            'auditStatus' => $auditStatus,
+            'auditRemark' => $auditRemark
+        ];
+
+        if ($cardID) {
+            $rawBody['cardId'] = $cardID;
+        } elseif ($orderNo) {
+            $rawBody['orderNo'] = $orderNo;
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '订单号或卡号为空';
+        }
+
+        $this->injectData($rawBody);
         return $this;
     }
 }
