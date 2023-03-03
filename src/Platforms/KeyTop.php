@@ -1090,4 +1090,92 @@ class KeyTop extends Platform
 
         return $this;
     }
+
+    public function getCarInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/QueryCarInfo';
+        $this->name = '实时信息查询';
+
+        if (!$plateNo = strval(Arr::get($queryPacket, 'carNo'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车牌不能为空';
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $cardID = strval(Arr::get($queryPacket, 'cardID'));
+        $orderID = strval(Arr::get($queryPacket, 'orderID'));
+        $startTime = strval(Arr::get($queryPacket, 'beganAt'));
+        $endTime = strval(Arr::get($queryPacket, 'endedAt'));
+        $pageIndex = intval(Arr::get($queryPacket, 'page')) ?: 1;
+        $pageSize = intval(Arr::get($queryPacket, 'pageSize')) ?: 15;
+
+        $rawBody = [
+            'plateNo' => $plateNo,
+            'cardNo' => $cardID,
+            'billId' => $orderID,
+            'startTime' => $startTime,
+            'endTime' => $endTime,
+            'pageIndex' => $pageIndex,
+            'pageSize' => $pageSize,
+            'parkId' => $parkID,
+            'serviceCode' => 'queryCarInfo'
+        ];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getDeviceStatus(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetDeviceStatus';
+        $this->name = '设备状态查询';
+
+        $deviceType = intval(Arr::get($queryPacket, 'type'));
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => 'getDeviceStatus', 'parkId' => $parkID, 'deviceType' => $deviceType];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function parkLaneControl(array $queryPacket = []): self
+    {
+        $this->uri = 'api/control/GateControl';
+        $this->name = '道闸控制';
+
+        if (!$laneID = strval(Arr::get($queryPacket, 'laneID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '通道ID不能为空';
+        }
+
+        $parkID = self::getParkID($queryPacket);
+        $mode = strval(Arr::get($queryPacket, 'mode'));
+        $rawBody = ['serviceCode' => 'gateControl', 'parkId' => $parkID, 'type' => $mode, 'nodeId' => $laneID];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function remoteOpen(array $queryPacket = []): self
+    {
+        $this->uri = 'api/control/RemoteOpen';
+        $this->name = '';
+
+        $parkID = self::getParkID($queryPacket);
+        $plateNo = strval(Arr::get($queryPacket, 'carNo'));
+        $type = intval(Arr::get($queryPacket, 'type'));
+        $remark = strval(Arr::get($queryPacket, 'remark'));
+
+        if (!$laneID = strval(Arr::get($queryPacket, 'laneID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '通道ID不能为空';
+        }
+
+        $rawBody = ['serviceCode' => 'remoteOpen', 'parkId' => $parkID, 'plateNo' => $plateNo, 'type' => $type, 'remark' => $remark, 'nodeId' => $laneID];
+        $this->injectData($rawBody);
+        return $this;
+    }
 }
