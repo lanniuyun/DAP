@@ -808,4 +808,286 @@ class KeyTop extends Platform
         $this->injectData($rawBody);
         return $this;
     }
+
+    public function getRefundExtendedServiceOrderList(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetRefundInfoList';
+        $this->name = '查询退款记录';
+
+        $parkID = self::getParkID($queryPacket);
+        $pageSize = abs(intval(Arr::get($queryPacket, 'pageSize'))) ?: 15;
+        $page = abs(intval(Arr::get($queryPacket, 'page'))) ?: 1;
+        $plateNo = strval(Arr::get($queryPacket, 'carNo'));
+        if (!$startTime = strval(Arr::get($queryPacket, 'beganAt'))) {
+            $this->errBox[] = '充值开始时间必填';
+            $this->cancel = true;
+        }
+
+        if (!$endTime = strval(Arr::get($queryPacket, 'endedAt'))) {
+            $this->errBox[] = '充值结束时间必填';
+            $this->cancel = true;
+        }
+
+        $rawBody = ['serviceCode' => 'getRefundInfoList', 'parkId' => $parkID, 'pageIndex' => $page, 'pageSize' => $pageSize];
+        $rawBody = array_merge($rawBody, compact('plateNo', 'startTime', 'endTime'));
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function payParkingOrder(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/PayParkingFee';
+        $this->name = '停车费支付';
+
+        $parkID = self::getParkID($queryPacket);
+
+        if (!$orderCode = strval(Arr::get($queryPacket, 'orderCode'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场订单号不能为空';
+        }
+
+        $payableAmount = intval(Arr::get($queryPacket, 'payableAmount'));
+        $amount = intval(Arr::get($queryPacket, 'amount'));
+        $payType = intval(Arr::get($queryPacket, 'payType'));
+        $payMethod = intval(Arr::get($queryPacket, 'payChannel'));
+        $freeMoney = intval(Arr::get($queryPacket, 'freeAmount'));
+        $freeTime = intval(Arr::get($queryPacket, 'freeTime'));
+        $isCarLeave = intval(Arr::get($queryPacket, 'isCarLeave'));
+
+        $freeDetail = [];
+        if ($freeTime > 0 || $freeMoney > 0) {
+            $free = Arr::get($queryPacket, 'free') ?: [];
+
+            $freeAmount = intval(Arr::get($free, 'money'));
+            $freeTimeV1 = intval(Arr::get($free, 'time'));
+            if (!$freeCode = strval(Arr::get($free, 'code'))) {
+                $this->cancel = true;
+                $this->errBox[] = '会员id、抵扣券编号、购物小票号 不能为空';
+            }
+            $freeType = intval(Arr::get($free, 'type'));
+            $freeName = strval(Arr::get($free, 'freeName'));
+
+            $freeDetail = [
+                'money' => $freeAmount,
+                'time' => $freeTimeV1,
+                'code' => $freeCode,
+                'type' => $freeType,
+                'freeName' => $freeName
+            ];
+        }
+
+        $outOrderCode = strval(Arr::get($queryPacket, 'outOrderCode'));
+
+        $rawBody = [
+            'serviceCode' => 'payParkingFee',
+            'parkId' => $parkID,
+            'orderNo' => $orderCode,
+            'payableAmount' => $payableAmount,
+            'amount' => $amount,
+            'payType' => $payType,
+            'payMethod' => $payMethod,
+            'freeMoney' => $freeMoney,
+            'freeTime' => $freeTime,
+            'isCarLeave' => $isCarLeave,
+            'freeDetail' => @json_encode($freeDetail),
+            'outOrderNo' => $outOrderCode,
+            'paymentExt' => @json_encode([
+                'deviceNo' => strval(Arr::get($queryPacket, 'deviceSN')),
+                'paymentTag' => strval(Arr::get($queryPacket, 'paymentTag')),
+            ]),
+            'isNoSense' => intval(Arr::get($queryPacket, 'isNoSense'))
+        ];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getPayParkingOrderStatus(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetOrderStatus';
+        $this->name = '查询订单状态';
+
+        $parkID = self::getParkID($queryPacket);
+
+        if (!$orderCode = strval(Arr::get($queryPacket, 'orderCode'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场订单号不能为空';
+        }
+
+        $rawBody = ['serviceCode' => 'getOrderStatus', 'parkId' => $parkID, 'orderNo' => $orderCode];
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function noCarNoInOrOut(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/UnlicensedCarInout';
+        $this->name = '无牌车出入场请求';
+
+        $parkID = self::getParkID($queryPacket);
+        $type = intval(Arr::get($queryPacket, 'type'));
+
+        if (!$deviceSN = strval(Arr::get($queryPacket, 'deviceSN'))) {
+            $this->cancel = true;
+            $this->errBox[] = '设备IP或编码为空';
+        }
+
+        if (!$cardID = strval(Arr::get($queryPacket, 'cardID'))) {
+            $this->cancel = true;
+            $this->errBox[] = '卡号或其他唯一值不得为空';
+        }
+
+        $rawBody = [
+            'serviceCode' => 'unlicensedCarInout',
+            'parkId' => $parkID,
+            'deviceType' => $type,
+            'deviceCode' => $deviceSN,
+            'cardNo' => $cardID
+        ];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function getParkPaymentInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/GetParkingPaymentInfo';
+        $this->name = '账单查询/费用查询';
+
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => 'getParkingPaymentInfo', 'parkId' => $parkID];
+
+        if ($carNo = strval(Arr::get($queryPacket, 'carNo'))) {
+            $rawBody['plateNo'] = $carNo;
+        } elseif ($cardID = strval(Arr::get($queryPacket, 'cardID'))) {
+            $rawBody['cardNo'] = $cardID;
+        } elseif ($deviceSN = strval(Arr::get($queryPacket, 'deviceSN'))) {
+            $rawBody['deviceCode'] = $deviceSN;
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '车牌号或入场卡ID或设备SN为空';
+        }
+
+        $freeTime = intval(Arr::get($queryPacket, 'freeTime'));
+        $freeMoney = intval(Arr::get($queryPacket, 'freeAmount'));
+
+        $rawBody['freeTime'] = $freeTime;
+        $rawBody['freeMoney'] = $freeMoney;
+
+        $this->injectData($rawBody);
+        return $this;
+    }
+
+    public function getParkPaymentInfoV1(array $queryPacket = []): self
+    {
+        $this->uri = 'config/platform/GetBackFeeOrderInfo';
+        $this->name = '账单查询/费用查询';
+
+        $parkID = self::getParkID($queryPacket);
+        $rawBody = ['serviceCode' => 'getBackFeeOrderInfo', 'parkId' => $parkID];
+
+        if (!$carNo = strval(Arr::get($queryPacket, 'carNo'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车牌为空';
+        }
+
+        $freeTime = intval(Arr::get($queryPacket, 'freeTime'));
+        $freeMoney = intval(Arr::get($queryPacket, 'freeAmount'));
+
+        $rawBody['freeTime'] = $freeTime;
+        $rawBody['freeMoney'] = $freeMoney;
+        $rawBody['plateNo'] = $carNo;
+        $this->injectData($rawBody);
+
+        return $this;
+    }
+
+    public function syncRefundOrderStatus(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/SyncRefundState';
+        $this->name = '退款状态同步';
+
+        $parkID = self::getParkID($queryPacket);
+
+        if (!$orderCode = strval(Arr::get($queryPacket, 'orderCode'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场订单号不能为空';
+        }
+
+        if (!$paidCode = strval(Arr::get($queryPacket, 'paidCode'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场支付单号不能为空';
+        }
+
+        if (!$refundTime = strval(Arr::get($queryPacket, 'refundTime'))) {
+            $this->cancel = true;
+            $this->errBox[] = '退款时间能为空';
+        }
+
+        $type = intval(Arr::get($queryPacket, 'type'));
+        $state = intval(Arr::get($queryPacket, 'status'));
+        $remark = strval(Arr::get($queryPacket, 'remark'));
+
+        $rawBody = [
+            'serviceCode' => 'syncRefundState',
+            'parkId' => $parkID,
+            'orderNo' => $orderCode,
+            'payNo' => $paidCode,
+            'refundType' => $type,
+            'state' => $state,
+            'remark' => $remark,
+            'refundTime' => $refundTime
+        ];
+
+        $this->injectData($rawBody);
+        return $this;
+    }
+
+    public function syncRefundOrderAuditStatus(array $queryPacket = []): self
+    {
+        $this->uri = 'api/wec/SyncRefundAudit';
+        $this->name = '退款审核状态下发';
+
+        $parkID = self::getParkID($queryPacket);
+
+        if (!$refundCode = strval(Arr::get($queryPacket, 'refundCode'))) {
+            $this->cancel = true;
+            $this->errBox[] = '车场退款单号不能为空';
+        }
+
+        if (!$auditName = strval(Arr::get($queryPacket, 'auditName'))) {
+            $this->cancel = true;
+            $this->errBox[] = '审核不能为空';
+        }
+
+        if (!$auditTime = strval(Arr::get($queryPacket, 'auditTime'))) {
+            $this->cancel = true;
+            $this->errBox[] = '审核时间为空';
+        }
+
+        if (!$remark = strval(Arr::get($queryPacket, 'remark'))) {
+            $this->cancel = true;
+            $this->errBox[] = '备注为空';
+        }
+
+        $auditState = intval(Arr::get($queryPacket, 'status'));
+
+        $rawBody = [
+            'serviceCode' => 'syncRefundAudit',
+            'parkId' => $parkID,
+            'refundNo' => $refundCode,
+            'auditState' => $auditState,
+            'auditName' => $auditName,
+            'auditTime' => $auditTime,
+            'remark' => $remark
+        ];
+
+        $this->injectData($rawBody);
+
+        return $this;
+    }
 }
