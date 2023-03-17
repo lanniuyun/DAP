@@ -409,7 +409,7 @@ class KeyTop extends Platform
                 break;
             case 2:
                 $this->uri = 'api/wec/ModifyCarCardNo';
-                $this->name = '修改车新增';
+                $this->name = '固定车新增';
                 $serviceCode = 'modifyCarCardNo';
                 break;
             case 1:
@@ -499,16 +499,21 @@ class KeyTop extends Platform
                         $this->cancel = true;
                     }
 
-                    $carLotList[] = [
+                    $tempCarLot = [
                         'id' => $id,
                         'lotName' => $lotName,
                         'carType' => $carType,
                         'sequence' => $sequence,
                         'areaName' => $areaName,
                         'areaId' => $areaIDs,
-                        'lotCount' => $lotCount,
-                        'ruleId' => intval(Arr::get($lot, 'ruleID'))
+                        'lotCount' => $lotCount
                     ];
+
+                    if (is_integer($ruleID = Arr::get($lot, 'ruleID'))) {
+                        $tempCarLot['ruleId'] = $ruleID;
+                    }
+
+                    $carLotList[] = $tempCarLot;
                 }
 
                 if (!$carLotList) {
