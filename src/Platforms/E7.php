@@ -1282,6 +1282,11 @@ class E7 extends Platform
             $this->errBox[] = '车场ID必填';
         }
 
+        if (!$this->queryBody['TokenId'] = Arr::get($queryPacket, 'tokenID')) {
+            $this->cancel = true;
+            $this->errBox[] = '凭证号必填';
+        }
+
         if (!$rawEnded = Arr::get($queryPacket, 'ended')) {
             $this->cancel = true;
             $this->errBox[] = '结束时间必填';
