@@ -378,7 +378,7 @@ class KeyTop extends Platform
         $carNo = Arr::get($queryPacket, 'carNo');
         $cardID = Arr::get($queryPacket, 'cardID');
 
-        $rawBody = ['serviceCode' => 'getNodeInfoById', 'parkId' => $parkID];
+        $rawBody = ['serviceCode' => 'getCarCardInfo', 'parkId' => $parkID];
 
         if ($carNo) {
             $rawBody['plateNo'] = $carNo;
