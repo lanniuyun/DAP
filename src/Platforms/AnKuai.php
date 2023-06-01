@@ -93,8 +93,8 @@ class AnKuai extends Platform
             $endTime = now()->endOfDay()->toDateTimeString();
         }
 
-        $indexId = intval(Arr::get($queryPacket, 'pageIndex'));
-        $size = intval(Arr::get($queryPacket, 'pageSize')) ?: 20;
+        $indexId = strval(intval(Arr::get($queryPacket, 'pageIndex')));
+        $size = strval(intval(Arr::get($queryPacket, 'pageSize')) ?: 20);
 
         $dataPacket = compact('carNo', 'startTime', 'endTime', 'indexId', 'size');
         $this->injectData($dataPacket);
@@ -133,10 +133,8 @@ class AnKuai extends Platform
     protected function generateSignature(): string
     {
         $queryBody = $this->queryBody;
-        $queryBody['timestamp'] = Carbon::parse($queryBody['timestamp'])->timestamp * 1000;
         $strAppend = $this->join2StrV2($queryBody);
         $strAppend .= '&key=' . $this->appSecret;
-        Log::info($strAppend);
         return strtolower(md5($strAppend));
     }
 
