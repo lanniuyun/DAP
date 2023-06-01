@@ -66,37 +66,266 @@ class AnKuai extends Platform
         return now()->format('YmdHis');
     }
 
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
     public function getEnterCar(array $queryPacket = []): self
     {
         $this->uri = 'Inquire/GetEnterCar';
         $this->name = '查询场内记录';
 
-        $carNo = strval(Arr::get($queryPacket, 'carNo'));
+        $dataPacket = $this->injectPageData($queryPacket);
+        $this->injectData($dataPacket);
 
-        try {
-            if ($startTime = Arr::get($queryPacket, 'startTime')) {
-                $startTime = Carbon::parse($startTime)->toDateTimeString();
-            } else {
-                throw new \Exception('null_date');
-            }
-        } catch (\Throwable $exception) {
-            $startTime = now()->startOfDay()->toDateTimeString();
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function getOutCar(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetOutCar';
+        $this->name = '查询出场记录';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     *  - laneNo
+     * @return $this
+     */
+    public function getRecordList(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetRecordList';
+        $this->name = '查询人工开闸记录';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+
+        if (!$laneNo = Arr::get($queryPacket, 'laneNo')) {
+            $this->errBox[] = '通道No必填';
+            $this->cancel = true;
         }
 
-        try {
-            if ($endTime = Arr::get($queryPacket, 'endTime')) {
-                $endTime = Carbon::parse($endTime)->toDateTimeString();
-            } else {
-                throw new \Exception('null_date');
-            }
-        } catch (\Throwable $exception) {
-            $endTime = now()->endOfDay()->toDateTimeString();
+        $dataPacket['passwayNo'] = $laneNo;
+
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    public function getRemainingSpace(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetRemainingSpace';
+        $this->name = '查询剩余车位';
+
+        $this->injectData($queryPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - laneNo
+     * @return $this
+     */
+    public function getVehicleOnline(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetVehicleOnline';
+        $this->name = '查询车道状态';
+
+        if (!$laneNo = Arr::get($queryPacket, 'laneNo')) {
+            $this->errBox[] = '通道No必填';
+            $this->cancel = true;
         }
 
-        $indexId = strval(intval(Arr::get($queryPacket, 'pageIndex')));
-        $size = strval(intval(Arr::get($queryPacket, 'pageSize')) ?: 20);
+        $dataPacket['passwayNo'] = $laneNo;
 
-        $dataPacket = compact('carNo', 'startTime', 'endTime', 'indexId', 'size');
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function getReserveList(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetReserveList';
+        $this->name = '查询访客预约车辆';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        unset($dataPacket['startTime']);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - orderCode
+     * @return $this
+     */
+    public function getBusiness(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetBusiness';
+        $this->name = '查询商家车辆';
+
+        if (!$orderNo = Arr::get($queryPacket, 'orderCode')) {
+            $this->errBox[] = '单号必填';
+            $this->cancel = true;
+        }
+
+        $dataPacket['orderNo'] = $orderNo;
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function getMonthlyCarInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetMthCarInfo';
+        $this->name = '查询月租车辆';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        unset($dataPacket['startTime']);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function getCarBlackInfo(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetCarBlackInfo';
+        $this->name = '查询黑名单车辆';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        unset($dataPacket['startTime']);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function getParkingOrder(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetPayOrder';
+        $this->name = '查询缴费记录';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        unset($dataPacket['startTime']);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - startTime
+     *  - endTime
+     *  - pageIndex
+     *  - pageSize
+     * @return $this
+     */
+    public function GetParkingOrderDetail(array $queryPacket = []): self
+    {
+        $this->uri = 'Inquire/GetPayPart';
+        $this->name = '查询缴费记录明细记录';
+
+        $dataPacket = $this->injectPageData($queryPacket);
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        unset($dataPacket['startTime']);
+        $this->injectData($dataPacket);
+
+        return $this;
+    }
+
+    /**
+     * @param array $queryPacket
+     *  - carNo
+     *  - orderCode
+     *  - laneNo
+     * @return $this
+     */
+    public function getToBePaidParkingOrder(array $queryPacket = []): self
+    {
+        $dataPacket = [];
+        
+        if ($carNo = strval(Arr::get($queryPacket, 'carNo'))) {
+            $this->uri = 'Inquire/GetParkOrderByCarNo';
+            $this->name = '根据车牌号获取价格';
+            $dataPacket['carNo'] = $carNo;
+        } elseif ($orderNo = strval(Arr::get($queryPacket, 'orderCode'))) {
+            $this->uri = 'Inquire/GetParkOrderByOrderNo';
+            $this->name = '根据订单号获取价格';
+            $dataPacket['orderNo'] = $orderNo;
+        } elseif ($laneNo = strval(Arr::get($queryPacket, 'laneNo'))) {
+            $this->uri = 'Inquire/GetParkOrderByPasswayNo';
+            $this->name = '获取车道当前订单';
+            $dataPacket['passwayNo'] = $laneNo;
+        } else {
+            $this->errBox[] = '车牌号或订单号或车道号必填';
+            $this->cancel = true;
+        }
+
         $this->injectData($dataPacket);
 
         return $this;
@@ -128,6 +357,36 @@ class AnKuai extends Platform
         ];
 
         $this->queryBody['sign'] = $this->generateSignature();
+    }
+
+    protected function injectPageData(array $queryData): array
+    {
+        $carNo = strval(Arr::get($queryData, 'carNo'));
+
+        try {
+            if ($startTime = Arr::get($queryData, 'startTime')) {
+                $startTime = Carbon::parse($startTime)->toDateTimeString();
+            } else {
+                throw new \Exception('null_date');
+            }
+        } catch (\Throwable $exception) {
+            $startTime = now()->startOfDay()->toDateTimeString();
+        }
+
+        try {
+            if ($endTime = Arr::get($queryData, 'endTime')) {
+                $endTime = Carbon::parse($endTime)->toDateTimeString();
+            } else {
+                throw new \Exception('null_date');
+            }
+        } catch (\Throwable $exception) {
+            $endTime = now()->endOfDay()->toDateTimeString();
+        }
+
+        $indexId = strval(intval(Arr::get($queryData, 'pageIndex')));
+        $size = strval(intval(Arr::get($queryData, 'pageSize')) ?: 20);
+
+        return compact('carNo', 'startTime', 'endTime', 'indexId', 'size');
     }
 
     protected function generateSignature(): string
