@@ -5,6 +5,7 @@ namespace On3\DAP;
 use Illuminate\Support\Arr;
 use On3\DAP\Exceptions\InvalidArgumentException;
 use On3\DAP\Platforms\AnJuBao;
+use On3\DAP\Platforms\AnKuai;
 use On3\DAP\Platforms\CQTelecom;
 use On3\DAP\Platforms\E7;
 use On3\DAP\Platforms\FreeView;
@@ -91,6 +92,13 @@ class DAP
     {
         $dap = new self;
         $dap->platform = new E7($config, $dev, $loadingToken);
+        return $dap;
+    }
+
+    static public function anKuai(array $config, bool $dev = false, bool $loadingToken = true): self
+    {
+        $dap = new self;
+        $dap->platform = new AnKuai($config, $dev, $loadingToken);
         return $dap;
     }
 

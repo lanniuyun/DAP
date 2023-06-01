@@ -52,4 +52,28 @@ trait DAPHashTrait
         }
         return $str;
     }
+
+    /**
+     * @param array $queryPacket
+     * @return string
+     */
+    protected function join2StrV2(array $queryPacket): string
+    {
+        $strAppend = '';
+        ksort($queryPacket);
+        foreach ($queryPacket as $key => $value) {
+
+            if (is_array($value)) {
+                continue;
+            }
+
+            if (!$value) {
+                $value = strval($value);
+            }
+
+            $strAppend && $strAppend .= '&';
+            $strAppend .= $key . '=' . $value;
+        }
+        return $strAppend;
+    }
 }
