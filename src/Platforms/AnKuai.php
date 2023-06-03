@@ -201,7 +201,7 @@ class AnKuai extends Platform
         $this->name = '查询访客预约车辆';
 
         $dataPacket = $this->injectPageData($queryPacket);
-        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime');
         unset($dataPacket['startTime']);
         $this->injectData($dataPacket);
 
@@ -244,7 +244,7 @@ class AnKuai extends Platform
         $this->name = '查询月租车辆';
 
         $dataPacket = $this->injectPageData($queryPacket);
-        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime');
         unset($dataPacket['startTime']);
         $this->injectData($dataPacket);
 
@@ -266,7 +266,7 @@ class AnKuai extends Platform
         $this->name = '查询黑名单车辆';
 
         $dataPacket = $this->injectPageData($queryPacket);
-        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime');
         unset($dataPacket['startTime']);
         $this->injectData($dataPacket);
 
@@ -288,7 +288,7 @@ class AnKuai extends Platform
         $this->name = '查询缴费记录';
 
         $dataPacket = $this->injectPageData($queryPacket);
-        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime');
         unset($dataPacket['startTime']);
         $this->injectData($dataPacket);
 
@@ -310,7 +310,7 @@ class AnKuai extends Platform
         $this->name = '查询缴费记录明细记录';
 
         $dataPacket = $this->injectPageData($queryPacket);
-        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime') ?: now()->startOfDay()->toDateTimeString();
+        $dataPacket['beginTime'] = Arr::get($dataPacket, 'startTime');
         unset($dataPacket['startTime']);
         $this->injectData($dataPacket);
 
@@ -849,7 +849,7 @@ class AnKuai extends Platform
                 throw new \Exception('null_date');
             }
         } catch (\Throwable $exception) {
-            $startTime = now()->startOfDay()->toDateTimeString();
+            $startTime = '';
         }
 
         try {
@@ -859,7 +859,7 @@ class AnKuai extends Platform
                 throw new \Exception('null_date');
             }
         } catch (\Throwable $exception) {
-            $endTime = now()->endOfDay()->toDateTimeString();
+            $endTime = '';
         }
 
         $indexId = strval(intval(Arr::get($queryData, 'pageIndex')));
