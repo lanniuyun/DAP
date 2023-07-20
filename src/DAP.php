@@ -14,6 +14,7 @@ use On3\DAP\Platforms\KeXiang;
 use On3\DAP\Platforms\KeyTop;
 use On3\DAP\Platforms\UniUbi\WT;
 use On3\DAP\Platforms\UniUbi\WO;
+use On3\DAP\Platforms\XinLian;
 
 class DAP
 {
@@ -99,6 +100,13 @@ class DAP
     {
         $dap = new self;
         $dap->platform = new AnKuai($config, $dev, $loadingToken);
+        return $dap;
+    }
+
+    static public function xinLian(array $config, bool $dev = false, bool $loadingToken = true): self
+    {
+        $dap = new self;
+        $dap->platform = new XinLian($config, $dev, $loadingToken);
         return $dap;
     }
 

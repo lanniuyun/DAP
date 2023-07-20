@@ -26,4 +26,7 @@ class Gateways
 
     const WO = 'http://wo-api.uni-ubi.com/';
     const WO_DEV = 'http://wo-api.uni-ubi.com/';
+
+    const XIN_LIN = 'https://xlapi.etcsd.cn:8093/xl-api/common/gateway';
+    const XIN_LIN_DEV = 'https://xlapi-etc-dev.xlkeji.net/xl-api/common/gateway';
 }
