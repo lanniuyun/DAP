@@ -2,9 +2,11 @@
 
 namespace On3\DAP\Platforms;
 
+use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use On3\DAP\Exceptions\InvalidArgumentException;
+use On3\DAP\Exceptions\RequestFailedException;
 
 class XinLian extends Platform
 {
@@ -31,11 +33,20 @@ class XinLian extends Platform
 
     protected function injectData(array $queryData)
     {
-        $this->queryBody = [
-            'appid' => $this->appid,
-            'versions' => '1.0',
-            'data' => json_encode($queryData)
-        ];
+
+        try {
+            $jsonQueryDat = json_encode($queryData);
+            $sign = self::generateSign($jsonQueryDat, $this->privateKey);
+            $this->queryBody = [
+                'appid' => $this->appid,
+                'versions' => '1.0',
+                'data' => json_encode($queryData),
+                'sign' => $sign
+            ];
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '生成签名失败';
+        }
     }
 
     static public function generateSign(string $toBeEncryptedStr, string $privateKey): string
@@ -71,6 +82,10 @@ class XinLian extends Platform
      */
     public function upEnterCar(array $queryPacket)
     {
+
+        $this->name = '车辆入场';
+
+
         if (!$transOrderNo = Arr::get($queryPacket, 'order_code')) {
             $this->errBox[] = '停车单号为空';
             $this->cancel = true;
@@ -112,13 +127,8 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        $plateColorCode = Arr::get($queryPacket, 'car_no_Color');
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_no_Color'));
         $balance = intval(Arr::get($queryPacket, 'balance'));
-
-        if (is_integer($plateColorCode)) {
-            $this->errBox[] = '车牌颜色编码为空';
-            $this->cancel = true;
-        }
 
         if (!$plateTypeCode = Arr::get($queryPacket, 'car_type')) {
             $this->errBox[] = '车辆类型为空';
@@ -195,7 +205,18 @@ class XinLian extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        $jsonResponse = Arr::get($response, 'response') ?: [];
+        $rawCode = Arr::get($jsonResponse, 'code');
+        $message = Arr::get($jsonResponse, 'message');
+        $data = Arr::get($jsonResponse, 'data') ?: [];
+
+        if ($rawCode === '000000') {
+            $resPacket = ['code' => 0, 'msg' => $message, 'data' => $data, 'raw_resp' => $response];
+        } else {
+            $resPacket = ['code' => $rawCode, 'msg' => $message, 'data' => $data, 'raw_resp' => $response];
+        }
+
+        $response = $resPacket;
     }
 
     public function cacheKey(): string
@@ -205,6 +226,49 @@ class XinLian extends Platform
 
     public function fire()
     {
-        // TODO: Implement fire() method.
+        $httpMethod = $this->httpMethod;
+        $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
+        if ($this->cancel) {
+            if (is_array($errBox = $this->errBox)) {
+                $errMsg = implode(',', $errBox);
+            } else {
+                $errMsg = '未知错误';
+            }
+            $this->cleanup();
+            throw new InvalidArgumentException($errMsg);
+        } else {
+            $exception = $rawResponse = $contentStr = null;
+            try {
+                $rawResponse = $httpClient->request($httpMethod, '', ['form_params' => $this->queryBody]);
+                $contentStr = $rawResponse->getBody()->getContents();
+                $contentArr = @json_decode($contentStr, true);
+            } catch (\Throwable $exception) {
+                $contentArr = $exception->getMessage();
+            } finally {
+                try {
+                    $this->logging->info($this->name, ['gateway' => $this->gateway, 'name' => $this->name, 'queryBody' => $this->queryBody, 'response' => $contentArr]);
+                } catch (\Throwable $ignoredException) {
+                }
+
+                $this->cleanup();
+
+                if ($exception instanceof \Throwable) {
+                    throw new RequestFailedException($exception->getMessage());
+                }
+
+                switch ($this->responseFormat) {
+                    case self::RESP_FMT_JSON:
+                        $responsePacket = $contentArr;
+                        $this->formatResp($responsePacket);
+                        return $responsePacket;
+                    case self::RESP_FMT_BODY:
+                        return $contentStr;
+                    case self::RESP_FMT_RAW:
+                    default:
+                        return $rawResponse;
+                }
+            }
+        }
     }
 }
