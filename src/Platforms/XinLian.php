@@ -478,6 +478,65 @@ class XinLian extends Platform
         return $this;
     }
 
+    public function isETCParkingWhiteCheck(array $queryPacket): self
+    {
+        $this->name = 'ETC无感-白名单查询';
+
+        if (!$plateNo = Arr::get($queryPacket, 'car_no')) {
+            $this->errBox[] = '车牌号码为空';
+            $this->cancel = true;
+        }
+
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_color'));
+        $amount = intval(Arr::get($queryPacket, 'amount'));
+        $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
+
+        $queryPacket = [
+            'biz_id' => 'etc.parking.white.check',
+            'waste_sn' => self::getWasteSn(),
+            'params' => [
+                'plate_no' => $plateNo,
+                'plate_color_code' => $plateColorCode,
+                'pay_type' => 1,
+                'amount' => $amount,
+                'vehicle_color' => $vehicleColor,
+            ]
+        ];
+
+        $this->injectData($queryPacket);
+
+        return $this;
+    }
+
+    public function upETCParkingOrderAttachment(array $queryPacket): self
+    {
+        $this->name = '上传订单附件';
+
+        if (!$paySerialNo = Arr::get($queryPacket, 'pay_serial_no')) {
+            $this->errBox[] = '交易流水号必填';
+            $this->cancel = true;
+        }
+        $antennaLocation = Arr::get($queryPacket, 'antenna_location');
+        $parkingLocation = Arr::get($queryPacket, 'parking_location');
+        $entrancePic = Arr::get($queryPacket, 'entered_pic');
+        $exitPic = Arr::get($queryPacket, 'exited_pic');
+
+        $queryPacket = [
+            'biz_id' => 'etc.parking.etctrans.otherinfo',
+            'waste_sn' => self::getWasteSn(),
+            'params' => [
+                'pay_serial_no' => $paySerialNo,
+                'antenna_location' => $antennaLocation,
+                'parking_location' => $parkingLocation,
+                'entrance_pic' => $entrancePic,
+                'exit_pic' => $exitPic,
+            ]
+        ];
+
+        $this->injectData($queryPacket);
+        return $this;
+    }
+
     static function getWasteSn(): string
     {
         return intval(microtime(true) * 10000) . mt_rand(10000000, 99999999);
