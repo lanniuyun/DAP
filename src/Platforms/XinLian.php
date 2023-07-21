@@ -65,7 +65,7 @@ class XinLian extends Platform
      *  order_code
      *  card_no
      * lane_no
-     * triggered_at
+     * entered_at
      * collector_name
      * collector_order
      * car_no
@@ -85,7 +85,6 @@ class XinLian extends Platform
 
         $this->name = '车辆入场';
 
-
         if (!$transOrderNo = Arr::get($queryPacket, 'order_code')) {
             $this->errBox[] = '停车单号为空';
             $this->cancel = true;
@@ -101,7 +100,7 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        if (!$entranceTime = Arr::get($queryPacket, 'triggered_at')) {
+        if (!$entranceTime = Arr::get($queryPacket, 'entered_at')) {
             $entranceTime = now()->format('YmdHis');
         } else {
             try {
@@ -170,6 +169,184 @@ class XinLian extends Platform
                 'remark' => $remark,
                 'vehicle_color' => $vehicleColor,
                 'query_no_sense' => $queryNoSense
+            ]
+        ];
+
+        $this->injectData($queryPacket);
+
+        return $this;
+    }
+
+    public function upExitCar(array $queryPacket): self
+    {
+        $this->name = '车辆出场';
+
+        if (!$transOrderNo = Arr::get($queryPacket, 'order_code')) {
+            $this->errBox[] = '停车单号为空';
+            $this->cancel = true;
+        }
+
+        if (!$parkRecordTime = Arr::get($queryPacket, 'record_time')) {
+            $this->errBox[] = '停车时长为驶出停车场时刻与驶入停车场时刻的时间差.例如：3天1小时34分20秒';
+            $this->cancel = true;
+        }
+
+        if (!$payMethodCode = intval(Arr::get($queryPacket, 'pay_type'))) {
+            $this->errBox[] = '支付类型编码为空';
+            $this->cancel = true;
+        }
+
+        if (!$cardSN = Arr::get($queryPacket, 'card_no')) {
+            $this->errBox[] = '卡号（ETC支付时与卡物理号一致；非ETC时上传车牌号）为空';
+            $this->cancel = true;
+        }
+
+        if (!$plateNo = Arr::get($queryPacket, 'car_no')) {
+            $this->errBox[] = '车牌号码为空';
+            $this->cancel = true;
+        }
+
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_color'));
+
+        if (!$entranceTime = Arr::get($queryPacket, 'entered_at')) {
+            $entranceTime = now()->format('YmdHis');
+        } else {
+            try {
+                $entranceTime = Carbon::parse($entranceTime)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '入场时间(yyyyMMddHHmmss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        if (!$entranceNo = Arr::get($queryPacket, 'lane_no')) {
+            $this->errBox[] = '入口参数[格式：入口编号+下划线(_)+入口名称]为空';
+            $this->cancel = true;
+        }
+
+        if (!$exitTime = Arr::get($queryPacket, 'exited_at')) {
+            $exitTime = now()->format('YmdHis');
+        } else {
+            try {
+                $exitTime = Carbon::parse($entranceTime)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '出场时间(yyyyMMddHHmmss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        if (!$exitNo = Arr::get($queryPacket, 'exit_lane_no')) {
+            $this->errBox[] = '出口参数[格式：出口编号+下划线(_)+出口名称]为空';
+            $this->cancel = true;
+        }
+
+        $specialInfo = strval(Arr::get($queryPacket, 'special_info'));
+
+        $receivableTotalAmount = intval(Arr::get($queryPacket, 'receivable_total_amount'));
+        $discountAmount = intval(Arr::get($queryPacket, 'discount_amount'));
+        $actualIncomeAmount = intval(Arr::get($queryPacket, 'actual_income_amount'));
+
+        if ($list1 = Arr::get($queryPacket, 'discount_list') ?: []) {
+
+            if (!$list1['discount_type'] = intval(Arr::get($list1, 'discount_type'))) {
+                $this->errBox[] = '优惠类型为空';
+                $this->cancel = true;
+            }
+
+            if (!$list1['discount_serial_no'] = Arr::get($list1, 'discount_serial_no')) {
+                $this->errBox[] = '优惠流水号为空';
+                $this->cancel = true;
+            }
+
+            $list1['discount_detail_amount'] = intval(Arr::get($list1, 'discount_detail_amount'));
+
+            if (!$list1['pay_company'] = strval(Arr::get($list1, 'pay_company'))) {
+                $this->errBox[] = '出资单位为空';
+                $this->cancel = true;
+            }
+
+            if (Arr::has($queryPacket, 'discount_detail')) {
+                $list1['discount_detail'] = strval(Arr::get($list1, 'discount_detail'));
+            }
+
+            if (!$list1['discount_no'] = strval(Arr::get($list1, 'discount_no'))) {
+                $this->errBox[] = '优惠券标识为空';
+                $this->cancel = true;
+            }
+        }
+
+        if ($list2 = Arr::get($queryPacket, 'payment_list') ?: []) {
+            if (!$list2['pay_type'] = intval(Arr::get($list2, 'pay_type'))) {
+                $this->errBox[] = '支付类型为空';
+                $this->cancel = true;
+            }
+
+            if (!$list2['pay_serial_no'] = Arr::get($list2, 'pay_serial_no')) {
+                $this->errBox[] = '支付流水号为空';
+                $this->cancel = true;
+            }
+
+            $list2['pay_amount'] = intval(Arr::get($list2, 'pay_amount'));
+        }
+
+        $discountNum = count($list1);
+        $payNum = count($list2);
+
+        if (!$collectorName = Arr::get($queryPacket, 'collector_name')) {
+            $this->errBox[] = '收费员名称为空';
+            $this->cancel = true;
+        }
+
+        if (!$collectorOrder = Arr::get($queryPacket, 'collector_order')) {
+            $this->errBox[] = '收费员班次为空';
+            $this->cancel = true;
+        }
+
+        if (!$plateTypeCode = Arr::get($queryPacket, 'car_type')) {
+            $this->errBox[] = '车辆类型为空';
+            $this->cancel = true;
+        }
+
+        if (!$passMethod = Arr::get($queryPacket, 'pass_type')) {
+            $this->errBox[] = '通行方式为空';
+            $this->cancel = true;
+        }
+
+        if (!$parkingTypeCode = Arr::get($queryPacket, 'parking_type')) {
+            $this->errBox[] = '停车类型为空';
+            $this->cancel = true;
+        }
+
+        $deviceNo = Arr::get($queryPacket, 'device_sn');
+
+        $queryPacket = [
+            'biz_id' => 'etc.parking.enterinfo.sync',
+            'waste_sn' => self::getWasteSn(),
+            'params' => [
+                'trans_order_no' => $transOrderNo,
+                'park_record_time' => $parkRecordTime,
+                'pay_method_code' => $payMethodCode,
+                'card_sn' => $cardSN,
+                'plate_no' => $plateNo,
+                'plate_color_code' => $plateColorCode,
+                'entrance_no' => $entranceNo,
+                'entrance_time' => $entranceTime,
+                'exit_time' => $exitTime,
+                'exit_no' => $exitNo,
+                'special_info' => $specialInfo,
+                'receivable_total_amount' => $receivableTotalAmount,
+                'discount_amount' => $discountAmount,
+                'actual_income_amount' => $actualIncomeAmount,
+                'discount_num' => $discountNum,
+                'list1' => $list1,
+                'pay_num' => $payNum,
+                'list2' => $list2,
+                'collector_name' => $collectorName,
+                'collector_order' => $collectorOrder,
+                'plate_type_code' => $plateTypeCode,
+                'pass_method' => $passMethod,
+                'parking_type_code' => $parkingTypeCode,
+                'device_no' => $deviceNo
             ]
         ];
 
