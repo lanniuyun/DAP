@@ -320,7 +320,7 @@ class XinLian extends Platform
         $deviceNo = Arr::get($queryPacket, 'device_sn');
 
         $queryPacket = [
-            'biz_id' => 'etc.parking.enterinfo.sync',
+            'biz_id' => 'etc.parking.exitinfo.sync',
             'waste_sn' => self::getWasteSn(),
             'params' => [
                 'trans_order_no' => $transOrderNo,
@@ -408,7 +408,7 @@ class XinLian extends Platform
         $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
 
         $queryPacket = [
-            'biz_id' => 'etc.parking.enterinfo.sync',
+            'biz_id' => 'etc.parking.pay.apply',
             'waste_sn' => self::getWasteSn(),
             'params' => [
                 'trans_order_no' => $transOrderNo,
