@@ -355,6 +355,129 @@ class XinLian extends Platform
         return $this;
     }
 
+    public function upETCParkingOrder(array $queryPacket): self
+    {
+        $this->name = 'ETC无感-交易上传';
+
+        if (!$transOrderNo = Arr::get($queryPacket, 'order_code')) {
+            $this->errBox[] = '停车单号为空';
+            $this->cancel = true;
+        }
+
+        if (!$paySerialNo = Arr::get($queryPacket, 'pay_serial_no')) {
+            $this->errBox[] = '支付流水号：商户号+支付流水号保证唯一；出场时需要填写该支付流水号为空';
+            $this->cancel = true;
+        }
+
+        if (!$plateNo = Arr::get($queryPacket, 'car_no')) {
+            $this->errBox[] = '车牌号码为空';
+            $this->cancel = true;
+        }
+
+        $plateColorCode = Arr::get($queryPacket, 'car_color');
+        $plateTypeCode = Arr::get($queryPacket, 'car_type');
+        $amount = intval(Arr::get($queryPacket, 'amount'));
+
+        if (!$entranceTime = Arr::get($queryPacket, 'entered_at')) {
+            $entranceTime = now()->format('YmdHis');
+        } else {
+            try {
+                $entranceTime = Carbon::parse($entranceTime)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '入场时间(yyyyMMddHHmmss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        if (!$exitTime = Arr::get($queryPacket, 'exited_at')) {
+            $exitTime = now()->format('YmdHis');
+        } else {
+            try {
+                $exitTime = Carbon::parse($entranceTime)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '出场时间(yyyyMMddHHmmss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        if (!$parkRecordTime = Arr::get($queryPacket, 'record_time')) {
+            $this->errBox[] = '停车时长为驶出停车场时刻与驶入停车场时刻的时间差.例如：3天1小时34分20秒';
+            $this->cancel = true;
+        }
+
+        $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
+
+        $queryPacket = [
+            'biz_id' => 'etc.parking.enterinfo.sync',
+            'waste_sn' => self::getWasteSn(),
+            'params' => [
+                'trans_order_no' => $transOrderNo,
+                'pay_type' => 1,
+                'pay_serial_no' => $paySerialNo,
+                'plate_no' => $plateNo,
+                'park_record_time' => $parkRecordTime,
+                'plate_color_code' => $plateColorCode,
+                'plate_type_code' => $plateTypeCode,
+                'amount' => $amount,
+                'entrance_time' => $entranceTime,
+                'exit_time' => $exitTime,
+                'vehicle_color' => $vehicleColor
+            ]
+        ];
+
+        $this->injectData($queryPacket);
+
+        return $this;
+    }
+
+    public function queryETCParkingOrder(array $queryPacket): self
+    {
+        $this->name = '无感支付扣费列表查询';
+
+        $plateNo = Arr::get($queryPacket, 'car_no');
+        $plateColor = Arr::get($queryPacket, 'car_color');
+        $cardNo = Arr::get($queryPacket, 'card_no');
+        $pageNo = min(intval(Arr::get($queryPacket, 'page')), 1);
+        $pageSize = min(intval(Arr::get($queryPacket, 'page_size')), 10);
+
+        if ($startTime = Arr::get($queryPacket, 'start_time')) {
+            try {
+                $startTime = Carbon::parse($startTime)->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '时间(yyyy-MM-dd HH:mm:ss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        if ($endTime = Arr::get($queryPacket, 'end_time')) {
+            try {
+                $endTime = Carbon::parse($endTime)->toDateTimeString();
+            } catch (\Throwable $exception) {
+                $this->errBox[] = '时间(yyyy-MM-dd HH:mm:ss)格式错误';
+                $this->cancel = true;
+            }
+        }
+
+        $queryPacket = [
+            'biz_id' => 'etc.parking.payment.query.order',
+            'waste_sn' => self::getWasteSn(),
+            'params' => [
+                'plate_no' => $plateNo,
+                'plate_color' => $plateColor,
+                'card_no' => $cardNo,
+                'pay_type' => 1,
+                'page_no' => $pageNo,
+                'page_size' => $pageSize,
+                'start_time' => $startTime,
+                'end_time' => $endTime
+            ]
+        ];
+
+        $this->injectData($queryPacket);
+
+        return $this;
+    }
+
     static function getWasteSn(): string
     {
         return intval(microtime(true) * 10000) . mt_rand(10000000, 99999999);
