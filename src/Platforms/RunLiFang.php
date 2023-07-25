@@ -2,12 +2,14 @@
 
 namespace On3\DAP\Platforms;
 
+use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use On3\DAP\Exceptions\InvalidArgumentException;
 
 class RunLiFang extends Platform
 {
 
+    protected $token;
     protected $username;
     protected $password;
     protected $cacheKey;
@@ -470,6 +472,41 @@ class RunLiFang extends Platform
 
     public function fire()
     {
-        // TODO: Implement fire() method.
+        $httpMethod = $this->httpMethod;
+        $httpClient = new Client(['base_uri' => $this->gateway, 'timeout' => $this->timeout, 'verify' => false]);
+
+        if ($this->cancel) {
+            if (is_array($errBox = $this->errBox)) {
+                $errMsg = implode(',', $errBox);
+            } else {
+                $errMsg = '未知错误';
+            }
+            $this->cleanup();
+            throw new InvalidArgumentException($errMsg);
+        } else {
+
+            $exception = $rawResponse = $contentStr = null;
+
+            $url = $this->uri;
+            $queryBody = [];
+
+            if ($this->isUrlQuery) {
+                $url = $url . http_build_query($this->queryBody);
+            } else {
+                $queryBody['json'] = $this->queryBody;
+            }
+
+            if ($this->fillToken) {
+                $queryBody['headers'] = ['Authorization' => $this->token];
+            }
+
+            try {
+                $rawResponse = $httpClient->request($httpMethod, $url, $queryBody);
+                $contentStr = $rawResponse->getBody()->getContents();
+                $contentArr = @json_decode($contentStr, true);
+            } catch (\Throwable $exception) {
+                $contentArr = $exception->getMessage();
+            }
+        }
     }
 }
