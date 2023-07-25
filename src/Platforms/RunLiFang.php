@@ -228,6 +228,209 @@ class RunLiFang extends Platform
         return $this;
     }
 
+    public function callAccept(array $queryPacket): self
+    {
+        $this->uri = 'call/accept';
+        $this->name = '接听设备呼入';
+
+        if (!$callId = Arr::get($queryPacket, 'call_id')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $media = strval(Arr::get($queryPacket, 'media'));
+        $acceptKind = strval(Arr::get($queryPacket, 'type'));
+        $accepter = strval(Arr::get($queryPacket, 'accepter'));
+
+        if ($media !== 'video') {
+            $media = 'audio';
+        }
+
+        $this->queryBody = compact('callId', 'sn', 'media', 'acceptKind', 'accepter');
+
+        return $this;
+    }
+
+    public function callHangUp(array $queryPacket): self
+    {
+        $this->uri = 'call/hangUp';
+        $this->name = '主动挂断呼叫';
+
+        if (!$callId = Arr::get($queryPacket, 'call_id')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $this->queryBody = compact('callId', 'sn');
+
+        return $this;
+    }
+
+    public function monitor(array $queryPacket): self
+    {
+        $this->uri = 'monitor';
+        $this->name = '监视发起';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $watcher = strval(Arr::get($queryPacket, 'watcher'));
+        $this->queryBody = compact('sn', 'watcher');
+
+        return $this;
+    }
+
+    public function monitorHangUp(array $queryPacket): self
+    {
+        $this->uri = 'monitor/hangUp';
+        $this->name = '被动挂断监视';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        if (!$monitorId = Arr::get($queryPacket, 'monitor_id')) {
+            $this->cancel = true;
+            $this->errBox[] = '监视ID必填';
+        }
+
+        $this->queryBody = compact('sn', 'monitorId');
+
+        return $this;
+    }
+
+    public function deviceStatus(array $queryPacket): self
+    {
+        $this->httpMethod = self::METHOD_GET;
+        $this->isUrlQuery = true;
+        $this->uri = 'device/status';
+        $this->name = '设备管理';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $this->queryBody = compact('sn');
+
+        return $this;
+    }
+
+    public function getDeviceSetting(array $queryPacket): self
+    {
+        $this->httpMethod = self::METHOD_GET;
+        $this->isUrlQuery = true;
+        $this->uri = 'device/setting';
+        $this->name = '获取设备设置';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $this->queryBody = compact('sn');
+
+        return $this;
+    }
+
+    public function deviceSync(array $queryPacket): self
+    {
+        $this->uri = 'device/sync';
+        $this->name = '数据同步';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $this->queryBody = compact('sn');
+
+        return $this;
+    }
+
+    public function deviceRoot(array $queryPacket): self
+    {
+        $this->uri = 'device/reboot';
+        $this->name = '重启';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $this->queryBody = compact('sn');
+
+        return $this;
+    }
+
+    public function deviceUpgrade(array $queryPacket): self
+    {
+        $this->uri = 'device/upgrade';
+        $this->name = '升级';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备序列号必填';
+        }
+
+        if (!$part = Arr::get($queryPacket, 'part')) {
+            $this->cancel = true;
+            $this->errBox[] = '升级指定部分的软件必填';
+        }
+
+        if (!$name = Arr::get($queryPacket, 'name')) {
+            $this->cancel = true;
+            $this->errBox[] = '软件名必填';
+        }
+
+        if (!$version = Arr::get($queryPacket, 'version')) {
+            $this->cancel = true;
+            $this->errBox[] = '目标版本号必填';
+        }
+
+        $this->queryBody = compact('sn', 'part', 'name', 'version');
+
+        return $this;
+    }
+
+    public function upQrcode(array $queryPacket): self
+    {
+        $this->uri = 'qrcode/openQrcode';
+        $this->name = '上传开锁二维码';
+
+        if (!$qrcodeUrl = Arr::get($queryPacket, 'qrcode_url')) {
+            $this->cancel = true;
+            $this->errBox[] = '二维码图片不可为空';
+        }
+
+        try {
+            $qrcode = file_get_contents($qrcodeUrl);
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '读取图片数据失败';
+        }
+
+        $sn = strval(Arr::get($queryPacket, 'sn'));
+        $text = strval(Arr::get($queryPacket, 'text'));
+
+        $this->queryBody = compact('qrcode', 'sn', 'text');
+
+        return $this;
+    }
+
     public function injectToken(bool $refresh = false)
     {
 
