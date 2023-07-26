@@ -29,4 +29,7 @@ class Gateways
 
     const XIN_LIN = 'https://xlapi.etcsd.cn:8093/xl-api/common/gateway';
     const XIN_LIN_DEV = 'https://xlapi-etc-dev.xlkeji.net/xl-api/common/gateway';
+
+    const RUN_LI_FANG = 'http://dptest.d-power.com.cn:14304';
+    const RUN_LI_FANG_DEV = 'http://dptest.d-power.com.cn:14304';
 }

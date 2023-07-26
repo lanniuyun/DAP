@@ -15,6 +15,7 @@ class RunLiFang extends Platform
     protected $cacheKey;
     protected $fillToken = true;
     protected $isUrlQuery = false;
+    protected $version = 'v1';
 
     const DEVICE_TYPE_UNIT = 'unitDoor';
     const DEVICE_TYPE_WALL = 'wallDoor';
@@ -24,14 +25,16 @@ class RunLiFang extends Platform
         if ($gateway = Arr::get($config, 'gateway')) {
             $this->gateway = $gateway;
         } else {
-            $this->gateway = $dev ? Gateways::XIN_LIN_DEV : Gateways::XIN_LIN;
+            $this->gateway = $dev ? Gateways::RUN_LI_FANG_DEV : Gateways::RUN_LI_FANG;
         }
 
         $this->username = Arr::get($config, 'username');
         $this->password = Arr::get($config, 'password');
 
         $this->configValidator();
+
         $autoLogging && $this->injectLogObj();
+        $loadingToken && $this->injectToken();
     }
 
     protected function login(): self
@@ -41,6 +44,7 @@ class RunLiFang extends Platform
         $this->fillToken = false;
 
         $this->queryBody = ['username' => $this->username, 'password' => $this->password];
+
         return $this;
     }
 
@@ -435,7 +439,20 @@ class RunLiFang extends Platform
 
     public function injectToken(bool $refresh = false)
     {
+        $cacheKey = $this->cacheKey();
 
+        if (!($token = cache($cacheKey)) || $refresh) {
+            $response = $this->login()->fire();
+            if ($this->token = Arr::get($response, 'data.token') ?: Arr::get($response, 'raw_resp.token')) {
+                cache([$cacheKey => $this->token], now()->addHours(2)->subMinutes(10));
+            }
+        } else {
+            $this->token = $token;
+        }
+
+        if (!$this->token) {
+            throw new InvalidArgumentException('获取token失败');
+        }
     }
 
     protected function configValidator()
@@ -456,12 +473,21 @@ class RunLiFang extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        $errCode = Arr::get($response, 'code');
+        $errMsg = Arr::get($response, 'msg');
+
+        if ($errCode) {
+            $resPacket = ['code' => $errCode, 'msg' => $errMsg, 'data' => [], 'raw_resp' => $response];
+        } else {
+            $resPacket = ['code' => 0, 'msg' => '', 'data' => $response, 'raw_resp' => $response];
+        }
+
+        $response = $resPacket;
     }
 
     public function cacheKey(): string
     {
-        return $this->cacheKey ?: $this->username;
+        return $this->cacheKey ?: 'RunLiFang:' . $this->username;
     }
 
     public function setCacheKey(string $cacheKey): self
@@ -485,27 +511,46 @@ class RunLiFang extends Platform
             throw new InvalidArgumentException($errMsg);
         } else {
 
-            $exception = $rawResponse = $contentStr = null;
-
-            $url = $this->uri;
+            $uri = '/' . $this->version . '/' . $this->uri;
             $queryBody = [];
 
             if ($this->isUrlQuery) {
-                $url = $url . http_build_query($this->queryBody);
+                $uri = $uri . http_build_query($this->queryBody);
             } else {
                 $queryBody['json'] = $this->queryBody;
             }
 
             if ($this->fillToken) {
-                $queryBody['headers'] = ['Authorization' => $this->token];
+                $queryBody['headers'] = ['Authorization' => 'DpToken ' . $this->token];
             }
 
             try {
-                $rawResponse = $httpClient->request($httpMethod, $url, $queryBody);
-                $contentStr = $rawResponse->getBody()->getContents();
-                $contentArr = @json_decode($contentStr, true);
+                $rawResponse = $httpClient->request($httpMethod, $uri, $queryBody);
             } catch (\Throwable $exception) {
-                $contentArr = $exception->getMessage();
+                $rawResponse = $exception->getResponse();
+            } finally {
+
+                $contentStr = $rawResponse->getBody()->getContents();
+                $contentArr = @json_decode($contentStr, true) ?: [];
+
+                try {
+                    $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $uri, 'name' => $this->name, 'queryBody' => $queryBody, 'response' => $contentArr]);
+                } catch (\Throwable $ignoredException) {
+                }
+
+                $this->cleanup();
+
+                switch ($this->responseFormat) {
+                    case self::RESP_FMT_JSON:
+                        $responsePacket = $contentArr;
+                        $this->formatResp($responsePacket);
+                        return $responsePacket;
+                    case self::RESP_FMT_BODY:
+                        return $contentStr;
+                    case self::RESP_FMT_RAW:
+                    default:
+                        return $rawResponse;
+                }
             }
         }
     }
