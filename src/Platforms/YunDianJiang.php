@@ -73,6 +73,21 @@ class YunDianJiang extends Platform
         return $this;
     }
 
+    public function getDeviceList(array $queryPacket): self
+    {
+        $this->uri = 'get_charge_station_list';
+        $this->name = '获取充电站列表';
+
+        $page = intval(Arr::get($queryPacket, 'page')) ?: 1;
+        $limit = intval(Arr::get($queryPacket, 'pageSize')) ?: 15;
+        $order = strval(Arr::get($queryPacket, 'orderBy')) ?: 'asc';
+        $offset = abs($page * $limit - 1);
+
+        $this->fillQueryBody(compact('offset', 'limit', 'order'));
+
+        return $this;
+    }
+
     protected function generateSignature()
     {
         // TODO: Implement generateSignature() method.
@@ -90,7 +105,17 @@ class YunDianJiang extends Platform
 
     protected function formatResp(&$response)
     {
-        // TODO: Implement formatResp() method.
+        $rawCode = Arr::get($response, 'code');
+        $message = Arr::get($response, 'message');
+        $data = Arr::get($response, 'data') ?: [];
+
+        if ($rawCode == 0) {
+            $resPacket = ['code' => 0, 'msg' => $message, 'data' => $data, 'raw_resp' => $response];
+        } else {
+            $resPacket = ['code' => $rawCode, 'msg' => $message, 'data' => $data, 'raw_resp' => $response];
+        }
+
+        $response = $resPacket;
     }
 
     public function cacheKey(): string
