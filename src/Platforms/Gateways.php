@@ -33,6 +33,6 @@ class Gateways
     const RUN_LI_FANG = 'http://dptest.d-power.com.cn:14304';
     const RUN_LI_FANG_DEV = 'http://dptest.d-power.com.cn:14304';
 
-    const YUN_DIAN_JIANG = 'http://api.dpc.jguwen.com/info/';
-    const YUN_DIAN_JIANG_DEV = 'http://api.dpc.jguwen.com/info/';
+    const YUN_DIAN_JIANG = 'http://api.dpc.jguwen.com/';
+    const YUN_DIAN_JIANG_DEV = 'http://api.dpc.jguwen.com/';
 }

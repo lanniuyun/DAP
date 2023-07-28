@@ -51,7 +51,7 @@ class YunDianJiang extends Platform
 
     public function getDeviceStatus(array $queryPacket): self
     {
-        $this->uri = 'realtime';
+        $this->uri = 'info/realtime';
         $this->name = '获取充电站状态';
 
         if (!$csIDs = Arr::get($queryPacket, 'SNs')) {
@@ -75,7 +75,7 @@ class YunDianJiang extends Platform
 
     public function getDeviceList(array $queryPacket): self
     {
-        $this->uri = 'get_charge_station_list';
+        $this->uri = 'info/get_charge_station_list';
         $this->name = '获取充电站列表';
 
         $page = intval(Arr::get($queryPacket, 'page')) ?: 1;
@@ -84,6 +84,50 @@ class YunDianJiang extends Platform
         $offset = abs($page * $limit - 1);
 
         $this->fillQueryBody(compact('offset', 'limit', 'order'));
+
+        return $this;
+    }
+
+    public function getChargeDetail(array $queryPacket): self
+    {
+        $this->uri = 'info/get_charge_unit';
+        $this->name = '获取充电详情';
+
+        if (!$cuIDs = Arr::get($queryPacket, 'cuIDs')) {
+            $this->cancel = true;
+            $this->errBox[] = '充电记录ID不得为空';
+        }
+
+        if (is_string($cuIDs) || is_integer($cuIDs)) {
+            $cuIDs = array_filter(array_unique(explode(',', $cuIDs)));
+        } elseif (is_array($cuIDs)) {
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '充电记录ID不得为空';
+        }
+
+        $cuid = implode(',', $cuIDs);
+        $this->fillQueryBody(compact('cuid'));
+
+        return $this;
+    }
+
+    public function powerUp(array $queryPacket): self
+    {
+        $this->uri = 'action/power_up';
+        $this->name = '上电';
+
+        if (!$pid = Arr::get($queryPacket, 'pid')) {
+            $this->cancel = true;
+            $this->errBox[] = '插座ID不得为空';
+        }
+
+        if (!$seconds = abs(intval(Arr::get($queryPacket, 'secs')))) {
+            $this->cancel = true;
+            $this->errBox[] = '充电时间不得为空';
+        }
+
+        $this->fillQueryBody(compact('pid', 'seconds'));
 
         return $this;
     }
@@ -106,7 +150,7 @@ class YunDianJiang extends Platform
     protected function formatResp(&$response)
     {
         $rawCode = Arr::get($response, 'code');
-        $message = Arr::get($response, 'message');
+        $message = strval(Arr::get($response, 'info'));
         $data = Arr::get($response, 'data') ?: [];
 
         if ($rawCode == 0) {
