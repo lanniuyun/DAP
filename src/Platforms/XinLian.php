@@ -33,6 +33,9 @@ class XinLian extends Platform
 
     protected function injectData(array $queryData)
     {
+        if (!Arr::get($queryData, 'params.vehicle_color')) {
+            unset($queryData['params']['vehicle_color']);
+        }
 
         try {
             $jsonQueryDat = json_encode($queryData);
@@ -146,7 +149,7 @@ class XinLian extends Platform
 
         $deviceNo = Arr::get($queryPacket, 'device_sn');
         $remark = Arr::get($queryPacket, 'remark');
-        $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
+        $vehicleColor = Arr::get($queryPacket, 'car_color');
         $queryNoSense = intval(Arr::get($queryPacket, 'query_no_sense'));
 
         $queryPacket = [
