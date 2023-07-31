@@ -122,12 +122,54 @@ class YunDianJiang extends Platform
             $this->errBox[] = '插座ID不得为空';
         }
 
+        $pipeArr = explode('_', $pid);
+
+        if (count($pipeArr) !== 2) {
+            $this->cancel = true;
+            $this->errBox[] = '插座ID与拼接规则不符';
+        }
+
         if (!$seconds = abs(intval(Arr::get($queryPacket, 'secs')))) {
             $this->cancel = true;
             $this->errBox[] = '充电时间不得为空';
         }
 
         $this->fillQueryBody(compact('pid', 'seconds'));
+
+        return $this;
+    }
+
+    public function powerEdit(array $queryPacket): self
+    {
+        $this->uri = 'action/change_charge_seconds';
+        $this->name = '修改充电时间';
+
+        if (!$cuid = Arr::get($queryPacket, 'cuID')) {
+            $this->cancel = true;
+            $this->errBox[] = '充电记录ID不得为空';
+        }
+
+        if (!$seconds = abs(intval(Arr::get($queryPacket, 'secs')))) {
+            $this->cancel = true;
+            $this->errBox[] = '充电时间不得为空';
+        }
+
+        $this->fillQueryBody(compact('cuid', 'seconds'));
+
+        return $this;
+    }
+
+    public function powerDown(array $queryPacket): self
+    {
+        $this->uri = 'action/power_down';
+        $this->name = '断电';
+
+        if (!$cuid = Arr::get($queryPacket, 'cuID')) {
+            $this->cancel = true;
+            $this->errBox[] = '充电记录ID不得为空';
+        }
+
+        $this->fillQueryBody(compact('cuid'));
 
         return $this;
     }
