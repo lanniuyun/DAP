@@ -206,7 +206,7 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        $plateColorCode = intval(Arr::get($queryPacket, 'car_color'));
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_no_Color'));
 
         if (!$entranceTime = Arr::get($queryPacket, 'entered_at')) {
             $entranceTime = now()->format('YmdHis');
@@ -374,7 +374,7 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        $plateColorCode = Arr::get($queryPacket, 'car_color');
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_no_Color'));
         $plateTypeCode = Arr::get($queryPacket, 'car_type');
         $amount = intval(Arr::get($queryPacket, 'amount'));
 
@@ -405,7 +405,7 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
+        $vehicleColor = Arr::get($queryPacket, 'car_color');
 
         $queryPacket = [
             'biz_id' => 'etc.parking.pay.apply',
@@ -435,7 +435,7 @@ class XinLian extends Platform
         $this->name = '无感支付扣费列表查询';
 
         $plateNo = Arr::get($queryPacket, 'car_no');
-        $plateColor = Arr::get($queryPacket, 'car_color');
+        $plateColor = intval(Arr::get($queryPacket, 'car_no_Color'));
         $cardNo = Arr::get($queryPacket, 'card_no');
         $pageNo = min(intval(Arr::get($queryPacket, 'page')), 1);
         $pageSize = min(intval(Arr::get($queryPacket, 'page_size')), 10);
@@ -487,9 +487,9 @@ class XinLian extends Platform
             $this->cancel = true;
         }
 
-        $plateColorCode = intval(Arr::get($queryPacket, 'car_color'));
+        $plateColorCode = intval(Arr::get($queryPacket, 'car_no_Color'));
         $amount = intval(Arr::get($queryPacket, 'amount'));
-        $vehicleColor = intval(Arr::get($queryPacket, 'car_color'));
+        $vehicleColor = Arr::get($queryPacket, 'car_color');
 
         $queryPacket = [
             'biz_id' => 'etc.parking.white.check',
