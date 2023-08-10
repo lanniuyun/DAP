@@ -72,18 +72,17 @@ class RunLiFang extends Platform
 
         switch (Arr::get($queryPacket, 'type')) {
             case self::DEVICE_TYPE_WALL:
-
                 $kind = self::DEVICE_TYPE_WALL;
-
-                if (!$building = Arr::get($queryPacket, 'building')) {
-                    $this->cancel = true;
-                    $this->errBox[] = '楼栋号必填';
-                }
                 break;
             case self::DEVICE_TYPE_UNIT:
             default:
 
                 $kind = self::DEVICE_TYPE_UNIT;
+
+                if (!$building = Arr::get($queryPacket, 'building')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '楼栋号必填';
+                }
 
                 if (!$unit = Arr::get($queryPacket, 'unit')) {
                     $this->cancel = true;
