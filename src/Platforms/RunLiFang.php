@@ -514,7 +514,7 @@ class RunLiFang extends Platform
             $queryBody = [];
 
             if ($this->isUrlQuery) {
-                $uri = $uri . http_build_query($this->queryBody);
+                $uri = $uri . '?' . http_build_query($this->queryBody);
             } else {
                 $queryBody['json'] = $this->queryBody;
             }
