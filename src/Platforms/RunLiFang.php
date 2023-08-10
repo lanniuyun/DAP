@@ -15,6 +15,7 @@ class RunLiFang extends Platform
     protected $cacheKey;
     protected $fillToken = true;
     protected $isUrlQuery = false;
+    protected $isImageUpload = false;
     protected $version = 'v1';
 
     const DEVICE_TYPE_UNIT = 'unitDoor';
@@ -143,13 +144,8 @@ class RunLiFang extends Platform
             $this->errBox[] = '人脸图片不可为空';
         }
 
-        try {
-            $IMAGE = file_get_contents($faceUrl);
-        } catch (\Throwable $exception) {
-            $this->cancel = true;
-            $this->errBox[] = '读取图片数据失败';
-        }
-
+        $IMAGE = $faceUrl;
+        $this->isImageUpload = true;
         $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'IMAGE'));
 
         return $this;
@@ -511,7 +507,13 @@ class RunLiFang extends Platform
         } else {
 
             $uri = '/' . $this->version . '/' . $this->uri;
-            $queryBody = [];
+            $queryBody = ['headers' => []];
+
+            if ($this->isImageUpload) {
+                $queryBody['form_params'] = ['IMAGE' => Arr::get($this->queryBody, 'IMAGE')];
+                $queryBody['headers']['Content-Type'] = 'image/jpeg';
+                unset($this->queryBody['IMAGE']);
+            }
 
             if ($this->isUrlQuery) {
                 $uri = $uri . '?' . http_build_query($this->queryBody);
@@ -520,7 +522,7 @@ class RunLiFang extends Platform
             }
 
             if ($this->fillToken) {
-                $queryBody['headers'] = ['Authorization' => 'DpToken ' . $this->token];
+                $queryBody['headers']['Authorization'] = 'DpToken ' . $this->token;
             }
 
             try {
