@@ -144,9 +144,17 @@ class RunLiFang extends Platform
             $this->errBox[] = '人脸图片不可为空';
         }
 
-        $IMAGE = $faceUrl;
+        try {
+            if (!$file = file_get_contents($faceUrl)) {
+                throw new \Exception('null face');
+            }
+        } catch (\Throwable $exception) {
+            $this->cancel = true;
+            $this->errBox[] = '获取人脸图片数据流失败';
+        }
+
         $this->isImageUpload = true;
-        $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'IMAGE'));
+        $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'file'));
 
         return $this;
     }
@@ -418,7 +426,7 @@ class RunLiFang extends Platform
         }
 
         try {
-            $qrcode = file_get_contents($qrcodeUrl);
+            $file = file_get_contents($qrcodeUrl);
         } catch (\Throwable $exception) {
             $this->cancel = true;
             $this->errBox[] = '读取图片数据失败';
@@ -426,8 +434,9 @@ class RunLiFang extends Platform
 
         $sn = strval(Arr::get($queryPacket, 'sn'));
         $text = strval(Arr::get($queryPacket, 'text'));
+        $this->isImageUpload = true;
 
-        $this->queryBody = compact('qrcode', 'sn', 'text');
+        $this->queryBody = compact('file', 'sn', 'text');
 
         return $this;
     }
@@ -510,9 +519,9 @@ class RunLiFang extends Platform
             $queryBody = ['headers' => []];
 
             if ($this->isImageUpload) {
-                $queryBody['form_params'] = ['IMAGE' => Arr::get($this->queryBody, 'IMAGE')];
+                $queryBody['body'] = Arr::get($this->queryBody, 'file');
                 $queryBody['headers']['Content-Type'] = 'image/jpeg';
-                unset($this->queryBody['IMAGE']);
+                unset($this->queryBody['file']);
             }
 
             if ($this->isUrlQuery) {
