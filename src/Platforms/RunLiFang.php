@@ -2,6 +2,7 @@
 
 namespace On3\DAP\Platforms;
 
+use Carbon\Carbon;
 use GuzzleHttp\Client;
 use Illuminate\Support\Arr;
 use On3\DAP\Exceptions\InvalidArgumentException;
@@ -17,9 +18,15 @@ class RunLiFang extends Platform
     protected $isUrlQuery = false;
     protected $isImageUpload = false;
     protected $version = 'v1';
+    protected $respFmt = self::RESP_FMT_JSON;
 
     const DEVICE_TYPE_UNIT = 'unitDoor';
     const DEVICE_TYPE_WALL = 'wallDoor';
+    const DEVICE_TYPE_ROOM = 'indoor';
+    const DEVICE_TYPE_PARK = 'parkingDoor';
+    const DEVICE_TYPE_LIFT_IN = 'liftInside';
+    const DEVICE_TYPE_LIFT_OUT = 'liftOutside';
+    const DEVICE_TYPE_ONE_KEY = 'oneKey';
 
     public function __construct(array $config, bool $dev = false, bool $loadingToken = true, bool $autoLogging = true)
     {
@@ -69,33 +76,41 @@ class RunLiFang extends Platform
             $this->errBox[] = '小区名必填';
         }
 
-        $building = $unit = '';
+        $building = $unit = $floor = $room = $lift = '';
 
-        switch (Arr::get($queryPacket, 'type')) {
+        switch ($kind = Arr::get($queryPacket, 'type')) {
             case self::DEVICE_TYPE_WALL:
-                $kind = self::DEVICE_TYPE_WALL;
+            case self::DEVICE_TYPE_ONE_KEY:
+            case self::DEVICE_TYPE_PARK:
                 break;
             case self::DEVICE_TYPE_UNIT:
+                if ($building = strval(Arr::get($queryPacket, 'building'))) {
+                } elseif ($unit = strval(Arr::get($queryPacket, 'unit'))) {
+                } else {
+                    $this->cancel = true;
+                    $this->errBox[] = '单元机所属标识必填';
+                }
+                break;
+            case self::DEVICE_TYPE_LIFT_IN:
+            case self::DEVICE_TYPE_LIFT_OUT:
+                $lift = strval(Arr::get($queryPacket, 'lift'));
+                $floor = strval(Arr::get($queryPacket, 'floor'));
+                break;
+            case self::DEVICE_TYPE_ROOM:
+                $floor = strval(Arr::get($queryPacket, 'floor'));
+                $room = strval(Arr::get($queryPacket, 'room'));
+                break;
             default:
-
-                $kind = self::DEVICE_TYPE_UNIT;
-
-                if (!$building = Arr::get($queryPacket, 'building')) {
-                    $this->cancel = true;
-                    $this->errBox[] = '楼栋号必填';
-                }
-
-                if (!$unit = Arr::get($queryPacket, 'unit')) {
-                    $this->cancel = true;
-                    $this->errBox[] = '单元号必填';
-                }
+                $this->cancel = true;
+                $this->errBox[] = '未知的设备类型';
                 break;
         }
 
         $name = strval(Arr::get($queryPacket, 'name'));
         $sn = strval(Arr::get($queryPacket, 'sn'));
+        $communityExternalId = strval(Arr::get($queryPacket, 'to_community_id'));
 
-        $this->queryBody = array_filter(compact(['kind', 'community', 'building', 'unit', 'sn', 'name']));
+        $this->queryBody = array_filter(compact(['kind', 'community', 'building', 'unit', 'sn', 'name', 'communityExternalId', 'floor', 'room', 'lift']));
 
         return $this;
     }
@@ -113,6 +128,29 @@ class RunLiFang extends Platform
         }
 
         $this->queryBody = compact('sn');
+
+        return $this;
+    }
+
+    public function deviceInfo(array $queryPacket): self
+    {
+        $this->uri = 'devices';
+        $this->name = '查询设备';
+        $this->httpMethod = self::METHOD_GET;
+        $this->isUrlQuery = true;
+
+        $communityId = $buildingId = $unitId = $sn = '';
+
+        if ($communityId = Arr::get($queryPacket, 'community_id')) {
+        } elseif ($buildingId = Arr::get($queryPacket, 'building_id')) {
+        } elseif ($unitId = Arr::get($queryPacket, 'unit_id')) {
+        } elseif ($sn = Arr::get($queryPacket, 'sn')) {
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '未获取任何参数';
+        }
+
+        $this->queryBody = array_filter(compact('communityId', 'buildingId', 'unitId', 'sn'));
 
         return $this;
     }
@@ -153,8 +191,19 @@ class RunLiFang extends Platform
             $this->errBox[] = '获取人脸图片数据流失败';
         }
 
+        if ($expiration = Arr::get($queryPacket, 'expired_at')) {
+            try {
+                $expiration = Carbon::parse($expiration)->format('Ymd');
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '有效期格式错误';
+            }
+        }
+        $tel = strval(Arr::get($queryPacket, 'phone'));
+        $name = strval(Arr::get($queryPacket, 'name'));
+
         $this->isImageUpload = true;
-        $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'file'));
+        $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'file', 'expiration', 'tel', 'name'));
 
         return $this;
     }
@@ -172,6 +221,70 @@ class RunLiFang extends Platform
         }
 
         $this->queryBody = compact('faceRegId');
+
+        return $this;
+    }
+
+    public function upCard(array $queryPacket): self
+    {
+        $this->uri = 'card';
+        $this->name = '添加门禁卡';
+        $this->httpMethod = self::METHOD_POST;
+
+        $communityId = $buildingId = $unitId = $sn = $floor = $room = '';
+
+        switch (Arr::get($queryPacket, 'type')) {
+            case 1:
+                $kind = 'managementCard';
+                if (!$communityId = Arr::get($queryPacket, 'community_id')) {
+                    $this->cancel = true;
+                    $this->errBox[] = '小区ID必填';
+                }
+                break;
+            case 0:
+            default:
+                $kind = 'occupantCard';
+
+                if ($buildingId = Arr::get($queryPacket, 'building_id')) {
+                } elseif ($unitId = Arr::get($queryPacket, 'unit_id')) {
+                } elseif ($sn = Arr::get($queryPacket, 'sn')) {
+                } else {
+                    $this->cancel = true;
+                    $this->errBox[] = '未获取卡号任一绑定标识';
+                }
+
+                if ($room = Arr::get($queryPacket, 'room')) {
+                    $floor = Arr::get($queryPacket, 'floor');
+                }
+                break;
+        }
+
+        if (!$rfid = Arr::get($queryPacket, 'card_no')) {
+            $this->cancel = true;
+            $this->errBox[] = '卡号必填';
+        }
+
+        $this->queryBody = array_filter(compact('kind', 'communityId', 'buildingId', 'unitId', 'sn', 'floor', 'room', 'rfid'));
+
+        return $this;
+    }
+
+    public function delCard(array $queryPacket): self
+    {
+        $this->uri = 'card';
+        $this->name = '删除门禁卡';
+        $this->httpMethod = self::METHOD_DELETE;
+        $communityId = $buildingId = $unitId = $sn = '';
+        if ($communityId = Arr::get($queryPacket, 'community_id')) {
+        } elseif ($buildingId = Arr::get($queryPacket, 'building_id')) {
+        } elseif ($unitId = Arr::get($queryPacket, 'unit_id')) {
+        } elseif ($sn = Arr::get($queryPacket, 'sn')) {
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '未获取卡号任一绑定标识';
+        }
+
+        $this->queryBody = array_filter(compact('communityId', 'buildingId', 'unitId', 'sn'));
 
         return $this;
     }
@@ -221,6 +334,7 @@ class RunLiFang extends Platform
         $this->name = '获取呼入留影';
         $this->httpMethod = self::METHOD_GET;
         $this->isUrlQuery = true;
+        $this->respFmt = self::RESP_FMT_BODY;
 
         if (!$callId = Arr::get($queryPacket, 'call_id')) {
             $this->cancel = true;
@@ -281,6 +395,47 @@ class RunLiFang extends Platform
         }
 
         $this->queryBody = compact('callId', 'sn');
+
+        return $this;
+    }
+
+    public function callDevice(array $queryPacket): self
+    {
+        $this->uri = 'call/device';
+        $this->name = '主呼设备';
+
+        if (!$sn = Arr::get($queryPacket, 'sn')) {
+            $this->cancel = true;
+            $this->errBox[] = '设备串码必填';
+        }
+
+        $devicePushUrl = Arr::get($queryPacket, 'push_url');
+        $devicePullUrl = Arr::get($queryPacket, 'pull_url');
+
+        $this->queryBody = compact('sn', 'devicePushUrl', 'devicePullUrl');
+
+        return $this;
+    }
+
+    public function callRoomDevice(array $queryPacket): self
+    {
+        $this->uri = 'call';
+        $this->name = '主呼室内设备';
+
+        $buildingId = $unitId = '';
+
+        if ($buildingId = Arr::get($queryPacket, 'building_id')) {
+        } elseif ($unitId = Arr::get($queryPacket, 'unit_id')) {
+        } else {
+            $this->cancel = true;
+            $this->errBox[] = '无呼起设备所属标识';
+        }
+
+        $room = Arr::get($queryPacket, 'room');
+        $calleePushUrl = Arr::get($queryPacket, 'push_url');
+        $calleePullUrl = Arr::get($queryPacket, 'pull_url');
+
+        $this->queryBody = compact('buildingId', 'unitId', 'room', 'calleePullUrl', 'calleePushUrl');
 
         return $this;
     }
@@ -441,6 +596,70 @@ class RunLiFang extends Platform
         return $this;
     }
 
+    public function getRemoteOpenRecordSnapshot(array $queryPacket): self
+    {
+        $this->uri = 'record/open/image';
+        $this->name = '开锁记录留影';
+        $this->httpMethod = self::METHOD_GET;
+        $this->isUrlQuery = true;
+        $this->respFmt = self::RESP_FMT_BODY;
+
+        if (!$sn = strval(Arr::get($queryPacket, 'sn'))) {
+            $this->cancel = true;
+            $this->errBox[] = '设备的串码必填';
+        }
+
+        if (!$time = strval(Arr::get($queryPacket, 'time'))) {
+            $this->cancel = true;
+            $this->errBox[] = '开门时间必填';
+        }
+
+        if ($time) {
+            try {
+                $time = Carbon::parse($time)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '开门时间格式化错误';
+            }
+        }
+
+        $this->queryBody = compact('sn', 'time');
+
+        return $this;
+    }
+
+    public function getCallRecordSnapshot(array $queryPacket): self
+    {
+        $this->uri = 'record/call/image';
+        $this->name = '呼叫记录留影';
+        $this->httpMethod = self::METHOD_GET;
+        $this->isUrlQuery = true;
+        $this->respFmt = self::RESP_FMT_BODY;
+
+        if (!$sn = strval(Arr::get($queryPacket, 'sn'))) {
+            $this->cancel = true;
+            $this->errBox[] = '设备的串码必填';
+        }
+
+        if (!$time = strval(Arr::get($queryPacket, 'time'))) {
+            $this->cancel = true;
+            $this->errBox[] = '开门时间必填';
+        }
+
+        if ($time) {
+            try {
+                $time = Carbon::parse($time)->format('YmdHis');
+            } catch (\Throwable $exception) {
+                $this->cancel = true;
+                $this->errBox[] = '开门时间格式化错误';
+            }
+        }
+
+        $this->queryBody = compact('sn', 'time');
+
+        return $this;
+    }
+
     public function injectToken(bool $refresh = false)
     {
         $cacheKey = $this->cacheKey();
@@ -541,7 +760,11 @@ class RunLiFang extends Platform
             } finally {
 
                 $contentStr = $rawResponse->getBody()->getContents();
-                $contentArr = @json_decode($contentStr, true) ?: [];
+                if ($this->respFmt === self::RESP_FMT_JSON) {
+                    $contentArr = @json_decode($contentStr, true) ?: [];
+                } else {
+                    $contentArr = ['body' => $contentStr];
+                }
 
                 try {
                     $this->logging->info($this->name, ['gateway' => $this->gateway, 'uri' => $uri, 'name' => $this->name, 'queryBody' => $queryBody, 'response' => $contentArr]);
@@ -563,5 +786,11 @@ class RunLiFang extends Platform
                 }
             }
         }
+    }
+
+    protected function cleanup()
+    {
+        parent::cleanup();
+        $this->respFmt = self::RESP_FMT_JSON;
     }
 }
