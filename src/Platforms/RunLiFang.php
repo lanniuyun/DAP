@@ -284,7 +284,12 @@ class RunLiFang extends Platform
             $this->errBox[] = '未获取卡号任一绑定标识';
         }
 
-        $this->queryBody = array_filter(compact('communityId', 'buildingId', 'unitId', 'sn'));
+        if (!$rfid = Arr::get($queryPacket, 'card_no')) {
+            $this->cancel = true;
+            $this->errBox[] = '卡号必填';
+        }
+
+        $this->queryBody = array_filter(compact('communityId', 'buildingId', 'unitId', 'sn', 'rfid'));
 
         return $this;
     }
