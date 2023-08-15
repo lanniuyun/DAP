@@ -800,5 +800,8 @@ class RunLiFang extends Platform
     {
         parent::cleanup();
         $this->respFmt = self::RESP_FMT_JSON;
+        $this->fillToken = true;
+        $this->isUrlQuery = false;
+        $this->isImageUpload = false;
     }
 }
