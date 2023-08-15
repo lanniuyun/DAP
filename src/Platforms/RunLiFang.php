@@ -84,11 +84,14 @@ class RunLiFang extends Platform
             case self::DEVICE_TYPE_PARK:
                 break;
             case self::DEVICE_TYPE_UNIT:
-                if ($building = strval(Arr::get($queryPacket, 'building'))) {
-                } elseif ($unit = strval(Arr::get($queryPacket, 'unit'))) {
-                } else {
+                if (!$building = strval(Arr::get($queryPacket, 'building'))) {
                     $this->cancel = true;
-                    $this->errBox[] = '单元机所属标识必填';
+                    $this->errBox[] = '单元机所属楼栋必填';
+                }
+
+                if (!$unit = strval(Arr::get($queryPacket, 'unit'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '单元机所属单元必填';
                 }
                 break;
             case self::DEVICE_TYPE_LIFT_IN:
