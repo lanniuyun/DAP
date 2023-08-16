@@ -96,12 +96,36 @@ class RunLiFang extends Platform
                 break;
             case self::DEVICE_TYPE_LIFT_IN:
             case self::DEVICE_TYPE_LIFT_OUT:
-                $lift = strval(Arr::get($queryPacket, 'lift'));
-                $floor = strval(Arr::get($queryPacket, 'floor'));
+                if (!$lift = strval(Arr::get($queryPacket, 'lift'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '梯控名称必填';
+                }
+
+                if ($floor = strval(Arr::get($queryPacket, 'floor'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '梯控所属楼层必填';
+                }
                 break;
             case self::DEVICE_TYPE_ROOM:
-                $floor = strval(Arr::get($queryPacket, 'floor'));
-                $room = strval(Arr::get($queryPacket, 'room'));
+                if (!$building = strval(Arr::get($queryPacket, 'building'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '室内机所属楼栋必填';
+                }
+
+                if (!$unit = strval(Arr::get($queryPacket, 'unit'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '室内机所属单元必填';
+                }
+
+                if (!$floor = strval(Arr::get($queryPacket, 'floor'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '室内机所属楼层必填';
+                }
+
+                if ($room = strval(Arr::get($queryPacket, 'room'))) {
+                    $this->cancel = true;
+                    $this->errBox[] = '室内机所属房号必填';
+                }
                 break;
             default:
                 $this->cancel = true;
