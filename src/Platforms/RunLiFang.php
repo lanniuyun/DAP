@@ -301,6 +301,7 @@ class RunLiFang extends Platform
         $this->uri = 'card';
         $this->name = '删除门禁卡';
         $this->httpMethod = self::METHOD_DELETE;
+        $this->isUrlQuery = true;
         $communityId = $buildingId = $unitId = $sn = '';
         if ($communityId = Arr::get($queryPacket, 'community_id')) {
         } elseif ($buildingId = Arr::get($queryPacket, 'building_id')) {
