@@ -122,7 +122,7 @@ class RunLiFang extends Platform
                     $this->errBox[] = '室内机所属楼层必填';
                 }
 
-                if ($room = strval(Arr::get($queryPacket, 'room'))) {
+                if (!$room = strval(Arr::get($queryPacket, 'room'))) {
                     $this->cancel = true;
                     $this->errBox[] = '室内机所属房号必填';
                 }
