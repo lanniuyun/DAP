@@ -396,7 +396,7 @@ class XinLian extends Platform
             $exitTime = now()->format('YmdHis');
         } else {
             try {
-                $exitTime = Carbon::parse($entranceTime)->format('YmdHis');
+                $exitTime = Carbon::parse($exitTime)->format('YmdHis');
             } catch (\Throwable $exception) {
                 $this->errBox[] = '出场时间(yyyyMMddHHmmss)格式错误';
                 $this->cancel = true;
