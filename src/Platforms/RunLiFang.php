@@ -607,6 +607,7 @@ class RunLiFang extends Platform
     {
         $this->uri = 'qrcode/openQrcode';
         $this->name = '上传开锁二维码';
+        $this->isUrlQuery = true;
 
         if (!$qrcodeUrl = Arr::get($queryPacket, 'qrcode_url')) {
             $this->cancel = true;
