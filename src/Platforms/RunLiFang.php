@@ -793,7 +793,7 @@ class RunLiFang extends Platform
                 $rawResponse = $exception->getResponse();
             } finally {
 
-                $contentStr = $rawResponse->getBody()->getContents();
+                $contentStr = optional(optional($rawResponse)->getBody())->getContents() ?: '';
                 if ($this->respFmt === self::RESP_FMT_JSON) {
                     $contentArr = @json_decode($contentStr, true) ?: [];
                 } else {
