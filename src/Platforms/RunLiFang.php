@@ -187,9 +187,12 @@ class RunLiFang extends Platform
         $this->uri = 'face';
         $this->name = '添加人脸';
         $this->isUrlQuery = true;
-
-        $timeout = intval(Arr::get($queryPacket, 'timeout'));
+        $file = null;
         $byDevice = true;
+        $this->isImageUpload = true;
+        $timeout = intval(Arr::get($queryPacket, 'timeout'));
+        $tel = strval(Arr::get($queryPacket, 'phone'));
+        $name = strval(Arr::get($queryPacket, 'name'));
 
         if ($communityIds = Arr::get($queryPacket, 'community_ids')) {
             $this->queryBody = compact('communityIds');
@@ -226,10 +229,7 @@ class RunLiFang extends Platform
                 $this->errBox[] = '有效期格式错误';
             }
         }
-        $tel = strval(Arr::get($queryPacket, 'phone'));
-        $name = strval(Arr::get($queryPacket, 'name'));
 
-        $this->isImageUpload = true;
         $this->queryBody = array_merge($this->queryBody, compact('timeout', 'byDevice', 'file', 'expiration', 'tel', 'name'));
 
         return $this;
