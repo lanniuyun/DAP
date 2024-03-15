@@ -528,7 +528,7 @@ class XinLian extends Platform
             $entrancePicUrl = Arr::get($queryPacket, 'entrance_pic_url');
             $exitPicUrl = Arr::get($queryPacket, 'exit_pic_url');
             $queryPacket = [
-                'biz_id' => 'etc.parking.etctrans.otherinfo',
+                'biz_id' => 'etc.parking.etctrans.otherinfo.url',
                 'waste_sn' => self::getWasteSn(),
                 'params' => [
                     'pay_serial_no' => $paySerialNo,
