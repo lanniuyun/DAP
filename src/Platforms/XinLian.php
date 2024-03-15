@@ -521,21 +521,39 @@ class XinLian extends Platform
         }
         $antennaLocation = Arr::get($queryPacket, 'antenna_location');
         $parkingLocation = Arr::get($queryPacket, 'parking_location');
-        $entrancePic = Arr::get($queryPacket, 'entered_pic');
-        $exitPic = Arr::get($queryPacket, 'exited_pic');
+        $type = Arr::get($queryPacket, 'type');
 
-        $queryPacket = [
-            'biz_id' => 'etc.parking.etctrans.otherinfo',
-            'waste_sn' => self::getWasteSn(),
-            'params' => [
-                'pay_serial_no' => $paySerialNo,
-                'antenna_location' => $antennaLocation,
-                'parking_location' => $parkingLocation,
-                'entrance_pic' => $entrancePic,
-                'exit_pic' => $exitPic,
-            ]
-        ];
-
+        if (is_numeric($type)) {
+            $type = intval($type);
+            $entrancePicUrl = Arr::get($queryPacket, 'entrance_pic_url');
+            $exitPicUrl = Arr::get($queryPacket, 'exit_pic_url');
+            $queryPacket = [
+                'biz_id' => 'etc.parking.etctrans.otherinfo',
+                'waste_sn' => self::getWasteSn(),
+                'params' => [
+                    'pay_serial_no' => $paySerialNo,
+                    'antenna_location' => $antennaLocation,
+                    'parking_location' => $parkingLocation,
+                    'entrance_pic_url' => $entrancePicUrl,
+                    'exit_pic_url' => $exitPicUrl,
+                    'type' => $type
+                ]
+            ];
+        } else {
+            $entrancePic = Arr::get($queryPacket, 'entered_pic');
+            $exitPic = Arr::get($queryPacket, 'exited_pic');
+            $queryPacket = [
+                'biz_id' => 'etc.parking.etctrans.otherinfo',
+                'waste_sn' => self::getWasteSn(),
+                'params' => [
+                    'pay_serial_no' => $paySerialNo,
+                    'antenna_location' => $antennaLocation,
+                    'parking_location' => $parkingLocation,
+                    'entrance_pic' => $entrancePic,
+                    'exit_pic' => $exitPic,
+                ]
+            ];
+        }
         $this->injectData($queryPacket);
         return $this;
     }
@@ -584,6 +602,7 @@ class XinLian extends Platform
     public function cacheKey(): string
     {
         // TODO: Implement cacheKey() method.
+        return '';
     }
 
     public function fire()
